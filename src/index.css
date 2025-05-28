@@ -5,42 +5,35 @@
 
 @layer base {
   :root {
-    --background: 220 20% 8%;
-    --foreground: 220 5% 95%;
+    --background: 249 255 253;
+    --foreground: 24 18 20;
 
-    --card: 220 15% 12%;
-    --card-foreground: 220 5% 95%;
+    --card: 247 244 242;
+    --card-foreground: 24 18 20;
 
-    --popover: 220 15% 12%;
-    --popover-foreground: 220 5% 95%;
+    --popover: 247 244 242;
+    --popover-foreground: 24 18 20;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 220 5% 95%;
+    --primary: 147 183 190;
+    --primary-foreground: 25 39 42;
 
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 220 5% 95%;
+    --secondary: 213 199 188;
+    --secondary-foreground: 50 39 31;
 
-    --muted: 220 15% 15%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 239 233 229;
+    --muted-foreground: 120 89 100;
 
-    --accent: 280 100% 70%;
-    --accent-foreground: 220 5% 95%;
+    --accent: 233 241 242;
+    --accent-foreground: 25 39 42;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 220 5% 95%;
+    --destructive: 239 68 68;
+    --destructive-foreground: 248 250 252;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 15%;
-    --ring: 217 91% 60%;
+    --border: 220 199 188;
+    --input: 239 233 229;
+    --ring: 147 183 190;
 
     --radius: 0.5rem;
-
-    /* Custom glassmorphic variables */
-    --glass-bg: rgba(15, 23, 42, 0.6);
-    --glass-border: rgba(148, 163, 184, 0.1);
-    --neon-blue: #00d4ff;
-    --neon-purple: #9333ea;
-    --neon-cyan: #06b6d4;
   }
 }
 
@@ -51,69 +44,18 @@
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background: linear-gradient(135deg, #f1fffa 0%, #e9f1f2 50%, #f7f4f2 100%);
     background-attachment: fixed;
     min-height: 100vh;
   }
 }
 
 @layer components {
-  .glass-panel {
-    @apply backdrop-blur-lg bg-white/5 border border-white/10 rounded-xl shadow-2xl;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
+  .simple-card {
+    @apply bg-card/80 border border-border rounded-lg shadow-sm backdrop-blur-sm;
   }
 
-  .glass-card {
-    @apply backdrop-blur-md bg-white/10 border border-white/20 rounded-lg shadow-lg;
+  .minimal-panel {
+    @apply bg-mint_cream-500/90 border border-light_blue-300/30 rounded-xl shadow-md;
   }
-
-  .neon-glow {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1);
-  }
-
-  .neon-border {
-    border: 1px solid var(--neon-blue);
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
-  }
-
-  .gradient-text {
-    @apply bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent;
-  }
-
-  .floating-animation {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .glow-animation {
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-
-  .workflow-node {
-    @apply glass-card p-4 hover:bg-white/20 transition-all duration-300 cursor-pointer;
-  }
-
-  .workflow-node:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
-  }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes glow {
-  from { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
-  to { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 40px rgba(147, 51, 234, 0.3); }
-}
-
-@keyframes pulse-neon {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.pulse-neon {
-  animation: pulse-neon 2s ease-in-out infinite;
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronRight } from 'lucide-react';
+import { ArrowRight, Lightbulb, Code, Settings } from 'lucide-react';
 
 interface LandingScreenProps {
   onStart: (idea: string) => void;
@@ -19,59 +19,75 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="glass-panel p-12 max-w-2xl w-full text-center animate-fade-in">
-        <div className="floating-animation">
-          <h1 className="text-6xl font-bold gradient-text mb-6">
-            SaaS Designer
+    <div className="min-h-screen bg-gradient-to-br from-mint_cream-500 to-timberwolf-900 p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16 pt-16">
+          <h1 className="text-5xl font-light text-onyx-200 mb-4">
+            SaaS Architect
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-neon-blue to-neon-purple mx-auto mb-8 rounded-full glow-animation"></div>
+          <p className="text-xl text-rose_taupe-300 max-w-2xl mx-auto">
+            Transform your idea into a structured project plan with intelligent guidance
+          </p>
         </div>
-        
-        <p className="text-xl text-muted-foreground mb-12 leading-relaxed">
-          Transform your SaaS idea into a complete project architecture with the power of AI. 
-          From concept to code, we'll guide you through every step.
-        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Describe your SaaS idea..."
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-              className="glass-card text-lg py-6 px-6 text-center border-0 focus:neon-border transition-all duration-300"
-            />
-          </div>
-          
-          <Button
-            type="submit"
-            disabled={!idea.trim()}
-            className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple hover:from-neon-purple hover:to-neon-cyan transition-all duration-300 transform hover:scale-105 neon-glow"
-          >
-            Start Building
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-        </form>
+        {/* Main Form */}
+        <div className="minimal-panel p-8 max-w-2xl mx-auto mb-16">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-onyx-300 mb-3">
+                Describe your SaaS idea
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g., A project management tool for remote teams..."
+                value={idea}
+                onChange={(e) => setIdea(e.target.value)}
+                className="h-12 text-base bg-mint_cream-600 border-light_blue-300 focus:border-light_blue-500 focus:ring-light_blue-500/20"
+              />
+            </div>
+            
+            <Button
+              type="submit"
+              disabled={!idea.trim()}
+              className="w-full h-12 bg-light_blue-500 hover:bg-light_blue-400 text-light_blue-100 font-medium transition-all duration-200"
+            >
+              Start Planning
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </form>
+        </div>
 
-        <div className="mt-12 grid grid-cols-3 gap-6 text-sm text-muted-foreground">
-          <div className="glass-card p-4 rounded-lg">
-            <div className="w-8 h-8 bg-neon-blue/20 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <div className="w-3 h-3 bg-neon-blue rounded-full pulse-neon"></div>
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="simple-card p-6 text-center">
+            <div className="w-12 h-12 bg-light_blue-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <Lightbulb className="h-6 w-6 text-light_blue-500" />
             </div>
-            <span>AI-Powered</span>
+            <h3 className="font-medium text-onyx-300 mb-2">Smart Planning</h3>
+            <p className="text-sm text-rose_taupe-400">
+              AI-guided requirements gathering
+            </p>
           </div>
-          <div className="glass-card p-4 rounded-lg">
-            <div className="w-8 h-8 bg-neon-purple/20 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <div className="w-3 h-3 bg-neon-purple rounded-full pulse-neon"></div>
+
+          <div className="simple-card p-6 text-center">
+            <div className="w-12 h-12 bg-timberwolf-300 rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <Settings className="h-6 w-6 text-timberwolf-100" />
             </div>
-            <span>Full Stack</span>
+            <h3 className="font-medium text-onyx-300 mb-2">Architecture Design</h3>
+            <p className="text-sm text-rose_taupe-400">
+              Visual workflow generation
+            </p>
           </div>
-          <div className="glass-card p-4 rounded-lg">
-            <div className="w-8 h-8 bg-neon-cyan/20 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <div className="w-3 h-3 bg-neon-cyan rounded-full pulse-neon"></div>
+
+          <div className="simple-card p-6 text-center">
+            <div className="w-12 h-12 bg-rose_taupe-300 rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <Code className="h-6 w-6 text-rose_taupe-100" />
             </div>
-            <span>Production Ready</span>
+            <h3 className="font-medium text-onyx-300 mb-2">Code Generation</h3>
+            <p className="text-sm text-rose_taupe-400">
+              Ready-to-use project scaffolds
+            </p>
           </div>
         </div>
       </div>
