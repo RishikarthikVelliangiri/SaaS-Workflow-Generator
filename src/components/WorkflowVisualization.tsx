@@ -24,13 +24,13 @@ const workflowNodes: WorkflowNode[] = [
 
 const getNodeColor = (type: string) => {
   switch (type) {
-    case 'frontend': return 'from-blue-500 to-cyan-500';
-    case 'backend': return 'from-purple-500 to-pink-500';
-    case 'database': return 'from-green-500 to-teal-500';
-    case 'api': return 'from-orange-500 to-red-500';
-    case 'auth': return 'from-indigo-500 to-purple-500';
-    case 'payment': return 'from-yellow-500 to-orange-500';
-    default: return 'from-gray-500 to-gray-600';
+    case 'frontend': return 'bg-light_blue-400';
+    case 'backend': return 'bg-rose_taupe-400';
+    case 'database': return 'bg-timberwolf-400';
+    case 'api': return 'bg-light_blue-500';
+    case 'auth': return 'bg-rose_taupe-500';
+    case 'payment': return 'bg-timberwolf-500';
+    default: return 'bg-onyx-400';
   }
 };
 
@@ -55,9 +55,9 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ onContinu
             y1={node.y + 30}
             x2={target.x + 60}
             y2={target.y + 30}
-            stroke="url(#connectionGradient)"
+            stroke="#93b7be"
             strokeWidth="2"
-            className="animate-pulse"
+            opacity="0.6"
           />
         );
       })
@@ -65,34 +65,27 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ onContinu
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen bg-mint_cream-500 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="glass-panel p-8 mb-6 animate-fade-in">
-          <h2 className="text-4xl font-bold gradient-text mb-4">
+        <div className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-12 mb-8 shadow-lg animate-fade-in">
+          <h2 className="text-4xl font-semibold text-onyx-200 mb-4">
             Your SaaS Architecture
           </h2>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl text-rose_taupe-400 leading-relaxed">
             Here's the generated workflow for your project. Click on any component to learn more.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Workflow Diagram */}
           <div className="lg:col-span-2">
-            <Card className="glass-panel p-6 h-96">
+            <Card className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-8 h-96 shadow-lg">
               <svg
                 width="100%"
                 height="100%"
                 viewBox="0 0 800 300"
                 className="overflow-visible"
               >
-                <defs>
-                  <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#00d4ff" />
-                    <stop offset="100%" stopColor="#9333ea" />
-                  </linearGradient>
-                </defs>
-                
                 {/* Render connections */}
                 {renderConnections()}
                 
@@ -107,11 +100,11 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ onContinu
                       className="cursor-pointer"
                       onClick={() => setSelectedNode(node.id)}
                     >
-                      <div className={`workflow-node h-full flex items-center justify-center text-center p-2 ${
-                        selectedNode === node.id ? 'neon-border' : ''
+                      <div className={`h-full flex items-center justify-center text-center p-3 bg-white/80 rounded-2xl border transition-all duration-200 hover:shadow-md ${
+                        selectedNode === node.id ? 'ring-2 ring-light_blue-400 shadow-lg' : 'border-light_blue-200'
                       }`}>
-                        <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${getNodeColor(node.type)} mr-2`}></div>
-                        <span className="text-sm font-medium">{node.label}</span>
+                        <div className={`w-3 h-3 rounded-full ${getNodeColor(node.type)} mr-2 flex-shrink-0`}></div>
+                        <span className="text-sm font-medium text-onyx-300">{node.label}</span>
                       </div>
                     </foreignObject>
                   </g>
@@ -121,40 +114,40 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ onContinu
           </div>
 
           {/* Node Details */}
-          <div className="space-y-4">
-            <Card className="glass-panel p-6">
-              <h3 className="text-xl font-semibold gradient-text mb-4">Component Details</h3>
+          <div className="space-y-6">
+            <Card className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-8 shadow-lg">
+              <h3 className="text-xl font-semibold text-onyx-200 mb-6">Component Details</h3>
               {selectedNode ? (
-                <div className="space-y-3">
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${getNodeColor(workflowNodes.find(n => n.id === selectedNode)?.type || '')} mx-auto`}></div>
-                  <h4 className="font-semibold text-center">
+                <div className="space-y-4">
+                  <div className={`w-8 h-8 rounded-full ${getNodeColor(workflowNodes.find(n => n.id === selectedNode)?.type || '')} mx-auto`}></div>
+                  <h4 className="font-semibold text-center text-onyx-300">
                     {workflowNodes.find(n => n.id === selectedNode)?.label}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-center">
+                  <p className="text-sm text-rose_taupe-400 text-center leading-relaxed">
                     Click on components in the diagram to explore their details and configurations.
                   </p>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center">
+                <p className="text-rose_taupe-400 text-center">
                   Select a component to view its details
                 </p>
               )}
             </Card>
 
-            <Card className="glass-panel p-6">
-              <h3 className="text-xl font-semibold gradient-text mb-4">Architecture Stats</h3>
-              <div className="space-y-3">
+            <Card className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-8 shadow-lg">
+              <h3 className="text-xl font-semibold text-onyx-200 mb-6">Architecture Stats</h3>
+              <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Components</span>
-                  <span className="font-semibold">{workflowNodes.length}</span>
+                  <span className="text-rose_taupe-400">Components</span>
+                  <span className="font-semibold text-onyx-300">{workflowNodes.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Integrations</span>
-                  <span className="font-semibold">4</span>
+                  <span className="text-rose_taupe-400">Integrations</span>
+                  <span className="font-semibold text-onyx-300">4</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Complexity</span>
-                  <span className="font-semibold text-neon-blue">Medium</span>
+                  <span className="text-rose_taupe-400">Complexity</span>
+                  <span className="font-semibold text-light_blue-500">Medium</span>
                 </div>
               </div>
             </Card>
@@ -162,18 +155,18 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ onContinu
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between mt-8">
+        <div className="flex justify-between mt-12">
           <Button
             onClick={onBack}
             variant="outline"
-            className="glass-card border-white/20 hover:bg-white/10 px-8 py-6"
+            className="bg-white/60 border-light_blue-200 hover:bg-white/80 px-8 py-4 rounded-2xl transition-all"
           >
             Back to Requirements
           </Button>
           
           <Button
             onClick={onContinue}
-            className="bg-gradient-to-r from-neon-blue to-neon-purple hover:from-neon-purple hover:to-neon-cyan px-8 py-6 neon-glow"
+            className="bg-light_blue-500 hover:bg-light_blue-400 text-white px-8 py-4 rounded-2xl transition-all"
           >
             Explore Tech Stack
             <ChevronRight className="ml-2 h-5 w-5" />

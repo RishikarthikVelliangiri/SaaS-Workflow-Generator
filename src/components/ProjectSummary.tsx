@@ -10,111 +10,111 @@ interface ProjectSummaryProps {
 
 const ProjectSummary: React.FC<ProjectSummaryProps> = ({ onRestart }) => {
   return (
-    <div className="min-h-screen p-6 flex items-center justify-center">
-      <div className="max-w-4xl w-full space-y-8">
-        <div className="glass-panel p-12 text-center animate-fade-in">
-          <div className="floating-animation mb-8">
-            <div className="w-24 h-24 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full mx-auto mb-6 flex items-center justify-center">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+    <div className="min-h-screen bg-mint_cream-500 p-6 flex items-center justify-center">
+      <div className="max-w-5xl w-full space-y-12">
+        <div className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-16 text-center shadow-lg animate-fade-in">
+          <div className="mb-8">
+            <div className="w-24 h-24 bg-light_blue-500 rounded-3xl mx-auto mb-8 flex items-center justify-center">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
                 <span className="text-2xl">🚀</span>
               </div>
             </div>
           </div>
           
-          <h1 className="text-5xl font-bold gradient-text mb-6">
+          <h1 className="text-5xl font-semibold text-onyx-200 mb-8">
             Project Complete!
           </h1>
-          <p className="text-xl text-muted-foreground mb-8">
+          <p className="text-xl text-rose_taupe-400 mb-12 leading-relaxed">
             Your SaaS application architecture is ready. You now have everything needed to start building.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="glass-card p-6">
-              <div className="w-12 h-12 bg-neon-blue/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <div className="w-6 h-6 bg-neon-blue rounded-full"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <Card className="bg-white/60 border border-light_blue-200/50 rounded-3xl p-8 shadow-md">
+              <div className="w-16 h-16 bg-light_blue-500/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+                <div className="w-8 h-8 bg-light_blue-500 rounded-xl"></div>
               </div>
-              <h3 className="font-semibold mb-2">Architecture Designed</h3>
-              <p className="text-sm text-muted-foreground">Complete system architecture with all components mapped</p>
+              <h3 className="font-semibold text-onyx-300 mb-3">Architecture Designed</h3>
+              <p className="text-sm text-rose_taupe-400 leading-relaxed">Complete system architecture with all components mapped</p>
             </Card>
             
-            <Card className="glass-card p-6">
-              <div className="w-12 h-12 bg-neon-purple/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <div className="w-6 h-6 bg-neon-purple rounded-full"></div>
+            <Card className="bg-white/60 border border-timberwolf-200/50 rounded-3xl p-8 shadow-md">
+              <div className="w-16 h-16 bg-timberwolf-400/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+                <div className="w-8 h-8 bg-timberwolf-400 rounded-xl"></div>
               </div>
-              <h3 className="font-semibold mb-2">Tech Stack Selected</h3>
-              <p className="text-sm text-muted-foreground">Optimal technology choices for your requirements</p>
+              <h3 className="font-semibold text-onyx-300 mb-3">Tech Stack Selected</h3>
+              <p className="text-sm text-rose_taupe-400 leading-relaxed">Optimal technology choices for your requirements</p>
             </Card>
             
-            <Card className="glass-card p-6">
-              <div className="w-12 h-12 bg-neon-cyan/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <div className="w-6 h-6 bg-neon-cyan rounded-full"></div>
+            <Card className="bg-white/60 border border-rose_taupe-200/50 rounded-3xl p-8 shadow-md">
+              <div className="w-16 h-16 bg-rose_taupe-400/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+                <div className="w-8 h-8 bg-rose_taupe-400 rounded-xl"></div>
               </div>
-              <h3 className="font-semibold mb-2">Code Generated</h3>
-              <p className="text-sm text-muted-foreground">Production-ready starter code and documentation</p>
+              <h3 className="font-semibold text-onyx-300 mb-3">Code Generated</h3>
+              <p className="text-sm text-rose_taupe-400 leading-relaxed">Production-ready starter code and documentation</p>
             </Card>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="glass-panel p-8">
-            <h2 className="text-2xl font-bold gradient-text mb-6">What You Received</h2>
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-10 shadow-lg">
+            <h2 className="text-2xl font-semibold text-onyx-200 mb-8">What You Received</h2>
+            <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <span>Project Architecture</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">Project Architecture</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span>Tech Stack Recommendations</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">Tech Stack Recommendations</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span>Starter Code</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">Starter Code</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span>API Integrations</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">API Integrations</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span>Deployment Guide</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">Deployment Guide</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span>Documentation</span>
-                <Badge className="bg-green-500/20 text-green-400">Complete</Badge>
+                <span className="text-onyx-300">Documentation</span>
+                <Badge className="bg-light_blue-500/20 text-light_blue-600 rounded-xl">Complete</Badge>
               </div>
             </div>
           </Card>
 
-          <Card className="glass-panel p-8">
-            <h2 className="text-2xl font-bold gradient-text mb-6">Recommended Next Steps</h2>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-neon-blue rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</div>
+          <Card className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-10 shadow-lg">
+            <h2 className="text-2xl font-semibold text-onyx-200 mb-8">Recommended Next Steps</h2>
+            <div className="space-y-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-light_blue-500 rounded-full flex items-center justify-center text-sm font-bold text-white mt-1">1</div>
                 <div>
-                  <h4 className="font-semibold">Set Up Development Environment</h4>
-                  <p className="text-sm text-muted-foreground">Install dependencies and configure your local setup</p>
+                  <h4 className="font-semibold text-onyx-300 mb-1">Set Up Development Environment</h4>
+                  <p className="text-sm text-rose_taupe-400 leading-relaxed">Install dependencies and configure your local setup</p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-neon-purple rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</div>
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-timberwolf-400 rounded-full flex items-center justify-center text-sm font-bold text-white mt-1">2</div>
                 <div>
-                  <h4 className="font-semibold">Configure Third-party Services</h4>
-                  <p className="text-sm text-muted-foreground">Set up Auth0, Stripe, and database connections</p>
+                  <h4 className="font-semibold text-onyx-300 mb-1">Configure Third-party Services</h4>
+                  <p className="text-sm text-rose_taupe-400 leading-relaxed">Set up Auth0, Stripe, and database connections</p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-neon-cyan rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</div>
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-rose_taupe-400 rounded-full flex items-center justify-center text-sm font-bold text-white mt-1">3</div>
                 <div>
-                  <h4 className="font-semibold">Customize and Extend</h4>
-                  <p className="text-sm text-muted-foreground">Adapt the code to your specific requirements</p>
+                  <h4 className="font-semibold text-onyx-300 mb-1">Customize and Extend</h4>
+                  <p className="text-sm text-rose_taupe-400 leading-relaxed">Adapt the code to your specific requirements</p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-neon-blue rounded-full flex items-center justify-center text-sm font-bold mt-0.5">4</div>
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-light_blue-500 rounded-full flex items-center justify-center text-sm font-bold text-white mt-1">4</div>
                 <div>
-                  <h4 className="font-semibold">Deploy and Launch</h4>
-                  <p className="text-sm text-muted-foreground">Deploy to production and start onboarding users</p>
+                  <h4 className="font-semibold text-onyx-300 mb-1">Deploy and Launch</h4>
+                  <p className="text-sm text-rose_taupe-400 leading-relaxed">Deploy to production and start onboarding users</p>
                 </div>
               </div>
             </div>
@@ -124,7 +124,7 @@ const ProjectSummary: React.FC<ProjectSummaryProps> = ({ onRestart }) => {
         <div className="text-center">
           <Button
             onClick={onRestart}
-            className="bg-gradient-to-r from-neon-blue to-neon-purple hover:from-neon-purple hover:to-neon-cyan px-12 py-6 text-lg neon-glow"
+            className="bg-light_blue-500 hover:bg-light_blue-400 text-white px-16 py-6 text-lg rounded-3xl shadow-lg transition-all"
           >
             Create Another Project
           </Button>

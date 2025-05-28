@@ -98,26 +98,26 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
             value={value}
             onChange={(e) => updateResponse(e.target.value)}
             placeholder={currentQuestion.placeholder}
-            className="glass-card min-h-32 text-lg border-0 focus:neon-border resize-none"
+            className="min-h-32 text-lg bg-white/80 border-light_blue-200 rounded-2xl focus:border-light_blue-400 focus:ring-2 focus:ring-light_blue-400/20 resize-none transition-all"
           />
         );
       
       case 'select':
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {currentQuestion.options?.map((option) => (
               <Card
                 key={option}
-                className={`glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/20 ${
-                  value === option ? 'neon-border bg-white/10' : ''
+                className={`bg-white/70 border-light_blue-200/50 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/80 hover:shadow-md ${
+                  value === option ? 'ring-2 ring-light_blue-400 bg-white/90' : ''
                 }`}
                 onClick={() => updateResponse(option)}
               >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full border-2 ${
-                    value === option ? 'bg-neon-blue border-neon-blue' : 'border-gray-400'
+                <div className="flex items-center space-x-4">
+                  <div className={`w-5 h-5 rounded-full border-2 transition-all ${
+                    value === option ? 'bg-light_blue-500 border-light_blue-500' : 'border-light_blue-300'
                   }`}></div>
-                  <span className="text-lg">{option}</span>
+                  <span className="text-lg text-onyx-300">{option}</span>
                 </div>
               </Card>
             ))}
@@ -127,12 +127,12 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
       case 'multiselect':
         const selectedOptions = Array.isArray(value) ? value : [];
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {currentQuestion.options?.map((option) => (
               <Card
                 key={option}
-                className={`glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/20 ${
-                  selectedOptions.includes(option) ? 'neon-border bg-white/10' : ''
+                className={`bg-white/70 border-light_blue-200/50 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-white/80 hover:shadow-md ${
+                  selectedOptions.includes(option) ? 'ring-2 ring-light_blue-400 bg-white/90' : ''
                 }`}
                 onClick={() => {
                   const newSelected = selectedOptions.includes(option)
@@ -141,11 +141,11 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
                   updateResponse(newSelected);
                 }}
               >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded border-2 ${
-                    selectedOptions.includes(option) ? 'bg-neon-blue border-neon-blue' : 'border-gray-400'
+                <div className="flex items-center space-x-4">
+                  <div className={`w-5 h-5 rounded border-2 transition-all ${
+                    selectedOptions.includes(option) ? 'bg-light_blue-500 border-light_blue-500' : 'border-light_blue-300'
                   }`}></div>
-                  <span className="text-lg">{option}</span>
+                  <span className="text-lg text-onyx-300">{option}</span>
                 </div>
               </Card>
             ))}
@@ -158,32 +158,32 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
             value={value}
             onChange={(e) => updateResponse(e.target.value)}
             placeholder={currentQuestion.placeholder}
-            className="glass-card text-lg py-6 border-0 focus:neon-border"
+            className="h-16 text-lg bg-white/80 border-light_blue-200 rounded-2xl focus:border-light_blue-400 focus:ring-2 focus:ring-light_blue-400/20 transition-all"
           />
         );
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="glass-panel p-8 max-w-3xl w-full animate-fade-in">
+    <div className="min-h-screen bg-mint_cream-500 flex items-center justify-center p-6">
+      <div className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-12 max-w-4xl w-full shadow-lg animate-fade-in">
         {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between text-sm text-muted-foreground mb-2">
+        <div className="mb-12">
+          <div className="flex justify-between text-sm text-rose_taupe-400 mb-3">
             <span>Step {currentStep + 1} of {questions.length}</span>
             <span>{Math.round(progress)}% Complete</span>
           </div>
-          <div className="w-full bg-white/10 rounded-full h-2">
+          <div className="w-full bg-light_blue-100 rounded-full h-3">
             <div 
-              className="bg-gradient-to-r from-neon-blue to-neon-purple h-2 rounded-full transition-all duration-500 glow-animation"
+              className="bg-light_blue-500 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
         </div>
 
         {/* Question */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold gradient-text mb-6">
+        <div className="mb-12">
+          <h2 className="text-3xl font-semibold text-onyx-200 mb-8 leading-tight">
             {currentQuestion.question}
           </h2>
           {renderInput()}
@@ -194,7 +194,7 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
           <Button
             onClick={handlePrevious}
             variant="outline"
-            className="glass-card border-white/20 hover:bg-white/10 px-8 py-6"
+            className="bg-white/60 border-light_blue-200 hover:bg-white/80 px-8 py-4 rounded-2xl transition-all"
           >
             <ChevronLeft className="mr-2 h-5 w-5" />
             {currentStep === 0 ? 'Back to Start' : 'Previous'}
@@ -202,7 +202,7 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
           
           <Button
             onClick={handleNext}
-            className="bg-gradient-to-r from-neon-blue to-neon-purple hover:from-neon-purple hover:to-neon-cyan px-8 py-6 neon-glow"
+            className="bg-light_blue-500 hover:bg-light_blue-400 text-white px-8 py-4 rounded-2xl transition-all"
           >
             {currentStep === questions.length - 1 ? 'Generate Workflow' : 'Next'}
             <ChevronRight className="ml-2 h-5 w-5" />
