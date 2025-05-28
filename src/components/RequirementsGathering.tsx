@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -12,6 +12,7 @@ interface Question {
   type: 'text' | 'textarea' | 'select' | 'multiselect';
   options?: string[];
   placeholder?: string;
+  allowAiDecision?: boolean;
 }
 
 const questions: Question[] = [
@@ -19,46 +20,53 @@ const questions: Question[] = [
     id: 'audience',
     question: 'Who is your target audience?',
     type: 'textarea',
-    placeholder: 'Describe your ideal users, their needs, and pain points...'
+    placeholder: 'Describe your ideal users, their needs, and pain points...',
+    allowAiDecision: true
   },
   {
     id: 'features',
     question: 'What are the core features you envision?',
     type: 'textarea',
-    placeholder: 'List the main features and functionalities...'
+    placeholder: 'List the main features and functionalities...',
+    allowAiDecision: true
   },
   {
     id: 'authentication',
     question: 'What authentication methods do you need?',
     type: 'multiselect',
-    options: ['Email/Password', 'Social Login (Google, GitHub)', 'SSO', 'Multi-factor Authentication']
+    options: ['Email/Password', 'Social Login (Google, GitHub)', 'SSO', 'Multi-factor Authentication'],
+    allowAiDecision: true
   },
   {
     id: 'payment',
     question: 'Do you need payment processing?',
     type: 'select',
-    options: ['No payments needed', 'One-time payments', 'Subscriptions', 'Both one-time and subscriptions']
+    options: ['No payments needed', 'One-time payments', 'Subscriptions', 'Both one-time and subscriptions'],
+    allowAiDecision: true
   },
   {
     id: 'scale',
     question: 'What scale are you planning for?',
     type: 'select',
-    options: ['MVP (< 1K users)', 'Growing (1K-10K users)', 'Scale (10K-100K users)', 'Enterprise (100K+ users)']
+    options: ['MVP (< 1K users)', 'Growing (1K-10K users)', 'Scale (10K-100K users)', 'Enterprise (100K+ users)'],
+    allowAiDecision: true
   },
   {
     id: 'integrations',
     question: 'Any specific third-party integrations needed?',
     type: 'textarea',
-    placeholder: 'APIs, services, or tools you want to integrate...'
+    placeholder: 'APIs, services, or tools you want to integrate...',
+    allowAiDecision: true
   }
 ];
 
 interface RequirementsGatheringProps {
+  idea: string;
   onComplete: (responses: Record<string, any>) => void;
   onBack: () => void;
 }
 
-const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplete, onBack }) => {
+const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ idea, onComplete, onBack }) => {
   const [currentStep, setCurrentStep] = React.useState(0);
   const [responses, setResponses] = React.useState<Record<string, any>>({});
 
@@ -88,8 +96,30 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
     }));
   };
 
+  const handleAiDecision = () => {
+    updateResponse('AI_DECIDE');
+  };
+
   const renderInput = () => {
     const value = responses[currentQuestion.id] || '';
+    const isAiDecision = value === 'AI_DECIDE';
+
+    if (isAiDecision) {
+      return (
+        <div className="bg-light_blue-100/10 border border-light_blue-300/30 rounded-2xl p-8 text-center">
+          <Sparkles className="h-12 w-12 text-light_blue-500 mx-auto mb-4" />
+          <p className="text-lg text-light_blue-600 font-medium">AI will decide this for you</p>
+          <p className="text-rose_taupe-400 mt-2">Our AI will analyze your project idea and make the best recommendation</p>
+          <Button
+            onClick={() => updateResponse('')}
+            variant="outline"
+            className="mt-4 bg-white/60 border-light_blue-200 hover:bg-white/80"
+          >
+            Change my mind
+          </Button>
+        </div>
+      );
+    }
 
     switch (currentQuestion.type) {
       case 'textarea':
@@ -186,6 +216,20 @@ const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ onComplet
           <h2 className="text-3xl font-semibold text-onyx-200 mb-8 leading-tight">
             {currentQuestion.question}
           </h2>
+          
+          {/* AI Decision Button */}
+          {currentQuestion.allowAiDecision && responses[currentQuestion.id] !== 'AI_DECIDE' && (
+            <div className="mb-8">
+              <Button
+                onClick={handleAiDecision}
+                className="bg-gradient-to-r from-light_blue-500 to-light_blue-400 hover:from-light_blue-400 hover:to-light_blue-300 text-white px-6 py-3 rounded-2xl transition-all mb-6"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                Let AI decide
+              </Button>
+            </div>
+          )}
+          
           {renderInput()}
         </div>
 

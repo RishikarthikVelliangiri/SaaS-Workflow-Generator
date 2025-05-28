@@ -4,16 +4,16 @@ import LandingScreen from '@/components/LandingScreen';
 import RequirementsGathering from '@/components/RequirementsGathering';
 import WorkflowVisualization from '@/components/WorkflowVisualization';
 import TechStackSuggestions from '@/components/TechStackSuggestions';
-import CodeGeneration from '@/components/CodeGeneration';
 import ProjectSummary from '@/components/ProjectSummary';
 
-type AppState = 'landing' | 'requirements' | 'workflow' | 'techstack' | 'codegen' | 'summary';
+type AppState = 'landing' | 'requirements' | 'workflow' | 'techstack' | 'summary';
 
 const Index = () => {
   const [currentState, setCurrentState] = React.useState<AppState>('landing');
   const [projectData, setProjectData] = React.useState({
     idea: '',
-    requirements: {}
+    requirements: {},
+    workflowData: null
   });
 
   console.log('Current app state:', currentState);
@@ -31,25 +31,21 @@ const Index = () => {
     setCurrentState('workflow');
   };
 
-  const handleWorkflowContinue = () => {
-    console.log('Moving from workflow to tech stack');
+  const handleWorkflowComplete = (workflowData: any) => {
+    console.log('Workflow completed:', workflowData);
+    setProjectData(prev => ({ ...prev, workflowData }));
     setCurrentState('techstack');
   };
 
   const handleTechStackContinue = () => {
-    console.log('Moving from tech stack to code generation');
-    setCurrentState('codegen');
-  };
-
-  const handleCodeGenComplete = () => {
-    console.log('Code generation complete, moving to summary');
+    console.log('Moving from tech stack to summary');
     setCurrentState('summary');
   };
 
   const handleRestart = () => {
     console.log('Restarting application');
     setCurrentState('landing');
-    setProjectData({ idea: '', requirements: {} });
+    setProjectData({ idea: '', requirements: {}, workflowData: null });
   };
 
   const goBack = (targetState: AppState) => {
@@ -65,6 +61,7 @@ const Index = () => {
       case 'requirements':
         return (
           <RequirementsGathering
+            idea={projectData.idea}
             onComplete={handleRequirementsComplete}
             onBack={() => goBack('landing')}
           />
@@ -73,7 +70,8 @@ const Index = () => {
       case 'workflow':
         return (
           <WorkflowVisualization
-            onContinue={handleWorkflowContinue}
+            projectData={projectData}
+            onComplete={handleWorkflowComplete}
             onBack={() => goBack('requirements')}
           />
         );
@@ -83,14 +81,6 @@ const Index = () => {
           <TechStackSuggestions
             onContinue={handleTechStackContinue}
             onBack={() => goBack('workflow')}
-          />
-        );
-      
-      case 'codegen':
-        return (
-          <CodeGeneration
-            onComplete={handleCodeGenComplete}
-            onBack={() => goBack('techstack')}
           />
         );
       
