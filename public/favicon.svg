@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Orange rectangle at top -->
+  <rect x="3" y="2" width="8" height="6" rx="1" fill="#f97316" stroke="#1f2937" stroke-width="0.8"/>
+  
+  <!-- Blue diamond in middle left -->
+  <rect x="5" y="12" width="4" height="4" rx="1" fill="#3b82f6" stroke="#1f2937" stroke-width="0.8" transform="rotate(45 7 14)"/>
+  
+  <!-- Orange circle at bottom left -->
+  <circle cx="7" cy="22" r="3" fill="#f97316" stroke="#1f2937" stroke-width="0.8"/>
+  
+  <!-- Cloud with servers -->
+  <g transform="translate(16, 6)">
+    <!-- Cloud outline -->
+    <path d="M3 8 C1 8, 0 6, 0 5 C0 3, 1 2, 3 2 C4 1, 6 1, 7 2 C9 2, 10 3, 10 5 C10 6, 9 8, 7 8 Z" 
+          fill="white" stroke="#1f2937" stroke-width="0.8"/>
+    
+    <!-- Database servers inside cloud -->
+    <g transform="translate(2.5, 3.5)">
+      <!-- Server stack -->
+      <rect x="0" y="0" width="5" height="1.2" rx="0.2" fill="#374151"/>
+      <circle cx="0.6" cy="0.6" r="0.2" fill="white"/>
+      <circle cx="1.4" cy="0.6" r="0.2" fill="white"/>
+      
+      <rect x="0" y="1.5" width="5" height="1.2" rx="0.2" fill="#374151"/>
+      <circle cx="0.6" cy="2.1" r="0.2" fill="white"/>
+      <circle cx="1.4" cy="2.1" r="0.2" fill="white"/>
+      
+      <rect x="0" y="3" width="5" height="1.2" rx="0.2" fill="#374151"/>
+      <circle cx="0.6" cy="3.6" r="0.2" fill="white"/>
+      <circle cx="1.4" cy="3.6" r="0.2" fill="white"/>
+    </g>
+  </g>
+  
+  <!-- Connecting lines -->
+  <path d="M11 5 Q14 5, 16 8" stroke="#1f2937" stroke-width="0.8" fill="none"/>
+  <path d="M7 10 L7 19" stroke="#1f2937" stroke-width="0.8" fill="none"/>
+  
+  <!-- Arrow curve -->
+  <g>
+    <path d="M10 25 Q18 25, 22 16" stroke="#1f2937" stroke-width="0.8" fill="none"/>
+    <path d="M20 18 L22 16 L20 14" stroke="#1f2937" stroke-width="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
