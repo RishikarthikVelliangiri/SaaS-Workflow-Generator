@@ -1,7 +1,185 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Simple Animation Keyframes */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Futuristic Jarvis-like red glow effect for workflow nodes */
+@keyframes jarvis-glow {
+  0% {
+    border-color: rgb(107 114 128 / 0.4);
+    box-shadow: 
+      0 0 0 0 rgba(239, 68, 68, 0),
+      inset 0 0 0 0 rgba(239, 68, 68, 0);
+    background: rgba(17, 24, 39, 0.8);
+  }
+  25% {
+    border-color: rgb(239 68 68 / 0.8);
+    box-shadow: 
+      0 0 15px rgba(239, 68, 68, 0.4),
+      0 0 30px rgba(239, 68, 68, 0.2),
+      0 0 45px rgba(239, 68, 68, 0.1),
+      inset 0 0 20px rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  50% {
+    border-color: rgb(239 68 68);
+    box-shadow: 
+      0 0 25px rgba(239, 68, 68, 0.8),
+      0 0 50px rgba(239, 68, 68, 0.4),
+      0 0 75px rgba(239, 68, 68, 0.2),
+      0 0 100px rgba(239, 68, 68, 0.1),
+      inset 0 0 30px rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.1);
+  }
+  75% {
+    border-color: rgb(239 68 68 / 0.8);
+    box-shadow: 
+      0 0 15px rgba(239, 68, 68, 0.4),
+      0 0 30px rgba(239, 68, 68, 0.2),
+      0 0 45px rgba(239, 68, 68, 0.1),
+      inset 0 0 20px rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  100% {
+    border-color: rgb(107 114 128 / 0.4);
+    box-shadow: 
+      0 0 0 0 rgba(239, 68, 68, 0),
+      inset 0 0 0 0 rgba(239, 68, 68, 0);
+    background: rgba(17, 24, 39, 0.8);
+  }
+}
+
+/* Futuristic data flow particles */
+@keyframes particle-trail {
+  0% {
+    opacity: 0;
+    r: 2;
+  }
+  10% {
+    opacity: 1;
+    r: 3;
+  }
+  90% {
+    opacity: 1;
+    r: 3;
+  }
+  100% {
+    opacity: 0;
+    r: 1;
+  }
+}
+
+/* AR-style holographic glow for dots */
+@keyframes hologram-pulse {
+  0% {
+    filter: 
+      drop-shadow(0 0 4px rgba(239, 68, 68, 0.9))
+      drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))
+      drop-shadow(0 0 12px rgba(239, 68, 68, 0.3));
+    opacity: 0.9;
+  }
+  50% {
+    filter: 
+      drop-shadow(0 0 8px rgba(239, 68, 68, 1))
+      drop-shadow(0 0 16px rgba(239, 68, 68, 0.8))
+      drop-shadow(0 0 24px rgba(239, 68, 68, 0.4))
+      drop-shadow(0 0 32px rgba(239, 68, 68, 0.2));
+    opacity: 1;
+  }
+  100% {
+    filter: 
+      drop-shadow(0 0 4px rgba(239, 68, 68, 0.9))
+      drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))
+      drop-shadow(0 0 12px rgba(239, 68, 68, 0.3));
+    opacity: 0.9;
+  }
+}
+
+/* Scanning line effect for futuristic feel */
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Node blink animation class - Jarvis style */
+.jarvis-glow {
+  animation: jarvis-glow 1.5s ease-in-out;
+}
+
+/* Holographic particle effect */
+.hologram-particle {
+  animation: hologram-pulse 1s ease-in-out infinite;
+}
+
+/* Energy pulse emanating from connection lines */
+@keyframes energy-pulse {
+  0% {
+    r: 2;
+    opacity: 1;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+  }
+  50% {
+    r: 6;
+    opacity: 0.4;
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.6));
+  }
+  100% {
+    r: 2;
+    opacity: 1;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+  }
+}
+
+/* Line energy pulse emanating outward from connection paths */
+@keyframes line-energy-pulse {
+  0% {
+    stroke-width: 2;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.6));
+  }
+  50% {
+    stroke-width: 6;
+    opacity: 0.3;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 1)) drop-shadow(0 0 16px rgba(239, 68, 68, 0.8));
+  }
+  100% {
+    stroke-width: 2;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.6));
+  }
+}
+
+/* Holographic connection line effect */
+@keyframes hologram-flow {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+  100% {
+    stroke-dashoffset: -20;
+    opacity: 0.4;
+  }
+}
 
 @layer base {
   :root {

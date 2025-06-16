@@ -1,7 +1,8 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "saas-workflow-generator",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "AI-Powered SaaS Architecture Design Tool",
   "type": "module",
   "scripts": {
     "dev": "vite",

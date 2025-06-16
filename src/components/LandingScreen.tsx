@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Lightbulb, Code, Settings } from 'lucide-react';
+import { ArrowRight, Lightbulb, Code, Settings, Shield, Key } from 'lucide-react';
+import { isApiKeySet, clearApiKey } from '@/utils/deepseekApi';
 
 interface LandingScreenProps {
   onStart: (idea: string) => void;
@@ -10,6 +10,12 @@ interface LandingScreenProps {
 
 const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
   const [idea, setIdea] = React.useState('');
+
+  const handleClearApiKey = () => {
+    clearApiKey();
+    // Force a page refresh to go back to API key input
+    window.location.reload();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,73 +25,89 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
   };
 
   return (
-    <div className="min-h-screen bg-mint_cream-500 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-red-900/80 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* API Key Status Header */}
+        <div className="absolute top-6 right-6">
+          <div className="flex items-center space-x-2 bg-gray-900/60 backdrop-blur-2xl border border-green-500/30 rounded-xl px-3 py-2">
+            <Shield className="h-4 w-4 text-green-400" />
+            <span className="text-sm text-green-200">API Key Active</span>
+            <Button
+              onClick={handleClearApiKey}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-green-300 hover:text-red-300 hover:bg-red-500/20"
+            >
+              <Key className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-20 pt-20">
-          <h1 className="text-6xl font-light text-onyx-200 mb-6 tracking-tight">
+          <h1 className="text-4xl font-light text-white mb-6 tracking-tight drop-shadow-neon">
             SaaS Architect
           </h1>
-          <p className="text-xl text-rose_taupe-400 max-w-2xl mx-auto leading-relaxed">
-            Transform your idea into a structured project plan with intelligent guidance
+          <p className="text-base text-red-200 max-w-2xl mx-auto leading-relaxed">
+            Transform your idea into a structured project plan with intelligent, futuristic guidance.
           </p>
         </div>
 
         {/* Main Form */}
-        <div className="bg-white/70 backdrop-blur-sm border border-light_blue-300/30 rounded-3xl p-12 max-w-3xl mx-auto mb-20 shadow-lg">
+        <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-12 max-w-3xl mx-auto mb-20 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div>
-              <label className="block text-lg font-medium text-onyx-300 mb-4">
+            <div>              <label htmlFor="saas-idea-input" className="block text-base font-medium text-gray-200 mb-4">
                 Describe your SaaS idea
               </label>
               <Input
+                id="saas-idea-input"
                 type="text"
                 placeholder="e.g., A project management tool for remote teams..."
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
-                className="h-16 text-lg bg-white/80 border-light_blue-200 rounded-2xl focus:border-light_blue-400 focus:ring-2 focus:ring-light_blue-400/20 transition-all"
+                className="h-14 text-base bg-gray-800/80 border-red-400/30 rounded-2xl focus:border-red-400 focus:ring-2 focus:ring-red-400/20 transition-all text-white"
               />
             </div>
             
             <Button
               type="submit"
               disabled={!idea.trim()}
-              className="w-full h-16 bg-light_blue-500 hover:bg-light_blue-400 text-white font-medium rounded-2xl transition-all duration-300 text-lg"
+              className="w-full h-14 bg-gradient-to-r from-red-600 to-gray-700 hover:from-red-500 hover:to-gray-600 text-white font-medium rounded-2xl transition-all duration-300 text-base shadow-neon"
             >
               Start Planning
-              <ArrowRight className="ml-3 h-6 w-6" />
+              <ArrowRight className="ml-3 h-5 w-5" />
             </Button>
           </form>
         </div>
 
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-white/60 backdrop-blur-sm border border-light_blue-200/50 rounded-3xl p-8 text-center hover:bg-white/70 transition-all duration-300">
-            <div className="w-16 h-16 bg-light_blue-100/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Lightbulb className="h-8 w-8 text-light_blue-500" />
+          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
+            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+              <Lightbulb className="h-7 w-7 text-red-400" />
             </div>
-            <h3 className="text-xl font-semibold text-onyx-300 mb-3">Smart Planning</h3>
-            <p className="text-rose_taupe-400 leading-relaxed">
+            <h3 className="text-base font-semibold text-white mb-2">Smart Planning</h3>
+            <p className="text-xs text-red-200 leading-relaxed">
               AI-guided requirements gathering for comprehensive project scope
             </p>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-sm border border-timberwolf-300/50 rounded-3xl p-8 text-center hover:bg-white/70 transition-all duration-300">
-            <div className="w-16 h-16 bg-timberwolf-200/30 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Settings className="h-8 w-8 text-timberwolf-400" />
+          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
+            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+              <Settings className="h-7 w-7 text-red-400" />
             </div>
-            <h3 className="text-xl font-semibold text-onyx-300 mb-3">Architecture Design</h3>
-            <p className="text-rose_taupe-400 leading-relaxed">
+            <h3 className="text-base font-semibold text-white mb-2">Architecture Design</h3>
+            <p className="text-xs text-red-200 leading-relaxed">
               Visual workflow generation with modern tech stack recommendations
             </p>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-sm border border-rose_taupe-300/50 rounded-3xl p-8 text-center hover:bg-white/70 transition-all duration-300">
-            <div className="w-16 h-16 bg-rose_taupe-200/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Code className="h-8 w-8 text-rose_taupe-400" />
+          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
+            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+              <Code className="h-7 w-7 text-red-400" />
             </div>
-            <h3 className="text-xl font-semibold text-onyx-300 mb-3">Code Generation</h3>
-            <p className="text-rose_taupe-400 leading-relaxed">
+            <h3 className="text-base font-semibold text-white mb-2">Code Generation</h3>
+            <p className="text-xs text-red-200 leading-relaxed">
               Production-ready starter code and comprehensive documentation
             </p>
           </div>

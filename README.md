@@ -1,73 +1,159 @@
-# Welcome to your Lovable project
+# 🚀 SaaS Workflow Generator
 
-## Project info
+An AI-powered tool for generating comprehensive SaaS architecture workflows and tech stack recommendations using advanced AI models.
 
-**URL**: https://lovable.dev/projects/2176ee87-52a1-4dd9-a342-f0ecdd86b935
+![SaaS Workflow Generator](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![React](https://img.shields.io/badge/React-18.3.1-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-blue)
+![Vite](https://img.shields.io/badge/Vite-6.0.1-purple)
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+- **🤖 AI-Powered Architecture Generation**: Generate complete SaaS architecture workflows using AI
+- **📊 Interactive Workflow Visualization**: Visual representation of your architecture components
+- **🔧 Tech Stack Recommendations**: AI-curated technology suggestions based on your requirements
+- **📝 Component Details**: Detailed explanations for each architectural component
+- **🎯 Requirements Gathering**: Intelligent form to capture your project needs
+- **📈 Architecture Stats**: Real-time analysis of your architecture complexity
+- **🔐 Secure API Key Management**: User-provided API keys with no server-side storage
 
-**Use Lovable**
+## 🛠️ Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2176ee87-52a1-4dd9-a342-f0ecdd86b935) and start prompting.
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI + shadcn/ui
+- **Icons**: Lucide React
+- **AI Integration**: OpenRouter API (DeepSeek)
+- **Deployment**: Vercel
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Quick Start
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 18+ or Bun
+- An OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/RishikarthikVelliangiri/SaaS-Workflow-Generator.git
+   cd SaaS-Workflow-Generator
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   bun install
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. **Start the development server**
+   ```bash
+   npm run dev
+   # or
+   bun run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. **Open your browser**
+   Navigate to `http://localhost:8080`
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 🔑 API Key Setup
+
+1. Visit [OpenRouter](https://openrouter.ai) and create an account
+2. Generate an API key (starts with `sk-or-`)
+3. Enter your API key in the application when prompted
+4. Your key is stored securely in memory only (not persisted)
+
+## 📖 How to Use
+
+1. **Enter API Key**: Provide your OpenRouter API key
+2. **Describe Your Project**: Enter your SaaS idea and requirements
+3. **Configure Requirements**: Answer questions about authentication, database, scaling, etc.
+4. **Generate Architecture**: AI creates your workflow and tech stack simultaneously
+5. **Explore Components**: Click on workflow components for detailed explanations
+6. **Review Tech Stack**: See AI-recommended technologies with explanations
+7. **Export Summary**: Get a comprehensive project summary
+
+## 🏗️ Architecture
+
+The application follows a clean, modular architecture:
+
+```
+src/
+├── components/          # React components
+│   ├── ui/             # Reusable UI components (shadcn/ui)
+│   ├── ApiKeyInput.tsx # Secure API key management
+│   ├── RequirementsGathering.tsx
+│   ├── WorkflowVisualization.tsx
+│   └── ...
+├── pages/              # Main application pages
+├── utils/              # Utility functions and API calls
+├── hooks/              # Custom React hooks
+└── lib/                # Library configurations
 ```
 
-**Edit a file directly in GitHub**
+## 🔒 Security
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- ✅ No hardcoded API keys or secrets
+- ✅ User-provided API key system
+- ✅ Client-side only architecture
+- ✅ Input validation and sanitization
+- ✅ Protection against prompt injection
+- ✅ Secure memory-only key storage
 
-**Use GitHub Codespaces**
+## 🚀 Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Vercel (Recommended)
 
-## What technologies are used for this project?
+1. **Connect your repository** to Vercel
+2. **Configure build settings**:
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+3. **Deploy** - No environment variables needed!
 
-This project is built with:
+### Other Platforms
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The app works on any static hosting platform:
+- Netlify
+- Surge
+- GitHub Pages
+- AWS S3 + CloudFront
 
-## How can I deploy this project?
+## 🤝 Contributing
 
-Simply open [Lovable](https://lovable.dev/projects/2176ee87-52a1-4dd9-a342-f0ecdd86b935) and click on Share -> Publish.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Can I connect a custom domain to my Lovable project?
+## 📝 License
 
-Yes, you can!
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🙏 Acknowledgments
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- [OpenRouter](https://openrouter.ai) for AI model access
+- [DeepSeek](https://deepseek.com) for the AI model
+- [shadcn/ui](https://ui.shadcn.com) for beautiful UI components
+- [Lucide](https://lucide.dev) for icons
+
+## 📊 Demo
+
+🔗 **Live Demo**: [Coming Soon]
+
+## 📧 Support
+
+If you have any questions or need help, please:
+- Open an issue on GitHub
+- Check the documentation
+- Review the code comments
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ using AI-powered development</strong>
+</div>
