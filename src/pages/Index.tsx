@@ -2,7 +2,7 @@ import React from 'react';
 import LandingScreen from '@/components/LandingScreen';
 import RequirementsGathering from '@/components/RequirementsGathering';
 import WorkflowVisualization from '@/components/WorkflowVisualization';
-import ApiKeyInput from '@/components/ApiKeyInput';
+import ApiKeyInput from '@/components/ApiKeyInputClean';
 
 type AppState = 'apikey' | 'landing' | 'requirements' | 'workflow';
 

@@ -10,11 +10,13 @@ interface LandingScreenProps {
 
 const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
   const [idea, setIdea] = React.useState('');
+  // Model selection removed; we use OpenAI by default
+  // No model selection - OpenAI is enforced by default
 
   const handleClearApiKey = () => {
     clearApiKey();
     // Force a page refresh to go back to API key input
-    window.location.reload();
+       globalThis.location.reload();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,6 +69,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
                 onChange={(e) => setIdea(e.target.value)}
                 className="h-14 text-base bg-gray-800/80 border-red-400/30 rounded-2xl focus:border-red-400 focus:ring-2 focus:ring-red-400/20 transition-all text-white"
               />
+            {/* Model dropdown removed - app uses OpenAI by default */}
             </div>
             
             <Button

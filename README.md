@@ -24,7 +24,7 @@ An AI-powered tool for generating comprehensive SaaS architecture workflows and 
 - **Styling**: Tailwind CSS
 - **UI Components**: Radix UI + shadcn/ui
 - **Icons**: Lucide React
-- **AI Integration**: OpenRouter API (DeepSeek)
+- **AI Integration**: OpenRouter API (OpenAI models)
 - **Deployment**: Vercel
 
 ## 🚀 Quick Start
@@ -137,7 +137,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [OpenRouter](https://openrouter.ai) for AI model access
-- [DeepSeek](https://deepseek.com) for the AI model
+- [OpenAI](https://openai.com) model usage via OpenRouter
 - [shadcn/ui](https://ui.shadcn.com) for beautiful UI components
 - [Lucide](https://lucide.dev) for icons
 
@@ -153,7 +153,3 @@ If you have any questions or need help, please:
 - Review the code comments
 
 ---
-
-<div align="center">
-  <strong>Built with ❤️ using AI-powered development</strong>
-</div>

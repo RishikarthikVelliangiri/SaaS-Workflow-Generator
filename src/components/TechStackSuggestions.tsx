@@ -52,7 +52,7 @@ const TechStackSuggestions: React.FC<TechStackSuggestionsProps> = ({ onContinue,
           <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-gray-500/10 rounded-3xl blur-xl"></div>
           <h2 className="text-5xl font-extrabold text-white mb-4 drop-shadow-neon tracking-tight" style={{fontFamily: 'Orbitron, Inter, sans-serif'}}>AI-Selected Tech Stack</h2>
           <p className="text-2xl text-red-200 mb-2">The optimal technologies for your futuristic SaaS project.</p>
-          <p className="text-lg text-red-100/80">Each card is chosen by DeepSeek AI and includes a reason for its selection.</p>
+          <p className="text-lg text-red-100/80">Each card is chosen by the AI model (OpenAI) and includes a reason for its selection.</p>
         </div>
         {loading ? (
           <div className="flex justify-center items-center min-h-[300px]">

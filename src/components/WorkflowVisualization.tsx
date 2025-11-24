@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Brain, Loader2, Eye, BarChart3, GripVertical, ChevronRight, CornerRightDown, Settings, Code, Database, Cloud } from 'lucide-react';
-import { generateWorkflowNodes, generateWorkflowExplanation, generateNodeDescription, generateTechStackWithReasons } from '@/utils/deepseekApi';
+import { generateWorkflowNodes, generateWorkflowExplanation, generateNodeDescription, generateBatchNodeDescriptions, generateTechStackWithReasons, MIN_REQUEST_INTERVAL } from '@/utils/deepseekApi';
 
 interface WorkflowNode {
   id: string;
@@ -48,6 +48,7 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
   const [isDragging, setIsDragging] = React.useState(false);
   const [draggedNode, setDraggedNode] = React.useState<string | null>(null);
   const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
+  const [hasGeneratedExplanation, setHasGeneratedExplanation] = React.useState(false);
   
   // Tech stack related state
   const [techStack, setTechStack] = React.useState<any[]>([]);
@@ -55,6 +56,9 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
   const [techStackError, setTechStackError] = React.useState<string | null>(null);
   const diagramRef = React.useRef<HTMLDivElement>(null);
   const svgRef = React.useRef<SVGSVGElement>(null);
+  const isGeneratingExplanation = React.useRef(false);
+  const [generationProgress, setGenerationProgress] = React.useState<number>(0);
+  const [generationStage, setGenerationStage] = React.useState<'idle' | 'workflow' | 'techStack' | 'descriptions' | 'explanation' | 'done'>('idle');
 
   // Tech stack category icons
   const getCategoryIcon = (category: string) => {
@@ -77,23 +81,51 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
 
   const generateBothWorkflowAndTechStack = async () => {
     setIsGenerating(true);
+    setGenerationStage('workflow');
+    setGenerationProgress(8);
     setIsTechStackLoading(true);
     
     try {
-      console.log('Generating workflow and tech stack simultaneously...');
+      console.log('Generating workflow and tech stack with rate limiting...');
       
-      // Generate both workflow and tech stack in parallel
-      const [nodes, techStackData] = await Promise.all([
-        generateWorkflowNodes(projectData.idea, projectData.requirements),
-        generateTechStackWithReasons(projectData.idea, projectData.requirements)
-      ]);
-      
+      // Generate workflow first
+      const nodes = await generateWorkflowNodes(projectData.idea, projectData.requirements);
       console.log('Generated nodes:', nodes);
-      console.log('Generated tech stack:', techStackData);
-      
       setWorkflowNodes(nodes);
-      setTechStack(techStackData);
+      setGenerationStage('techStack');
+      setGenerationProgress(40);
       setWorkflowGenerated(true);
+      setGenerationProgress(45);
+      
+      // Wait a short time to let queue settle; batch description will reduce API volume
+      console.log(`Waiting ${MIN_REQUEST_INTERVAL}ms before generating tech stack and node descriptions...`);
+      await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL));
+      
+      // Then generate tech stack
+      const techStackData = await generateTechStackWithReasons(projectData.idea, projectData.requirements);
+      console.log('Generated tech stack:', techStackData);
+      setTechStack(techStackData);
+      setGenerationStage('explanation');
+      setGenerationProgress(70);
+      // Fetch explanation after we have nodes and tech stack
+      await fetchWorkflowExplanation(projectData.idea, projectData.requirements, nodes);
+      setHasGeneratedExplanation(true); // prevent duplicate explanation generation from other effects
+      
+      // Generate descriptions for all nodes in a single batch request, then set cache
+      setGenerationStage('descriptions');
+      setGenerationProgress(80);
+      try {
+        setGenerationProgress(80);
+        const nodeInfo = nodes.map((n: any) => ({ id: n.id, label: n.label, type: n.type }));
+        const batchDescriptions = await generateBatchNodeDescriptions(projectData.idea, nodeInfo);
+        // Normalize and save into nodeDescriptions state
+        setNodeDescriptions(prev => ({ ...prev, ...batchDescriptions }));
+        setGenerationProgress(90);
+        setGenerationStage('explanation');
+      } catch (err) {
+        console.error('Batch descriptions failed; fallbacks will be used per node:', err);
+      }
+      setGenerationProgress(75);
       
     } catch (error) {
       console.error('Error generating workflow and/or tech stack:', error);
@@ -105,15 +137,23 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
     } finally {
       setIsGenerating(false);
       setIsTechStackLoading(false);
+      setGenerationStage('done');
+      setGenerationProgress(100);
+      // Reset progress after a short delay so overlay hides gracefully
+      setTimeout(() => setGenerationProgress(0), 1200);
     }
   };
   const fetchWorkflowExplanation = async (idea: string, requirements: Record<string, any>, nodes: WorkflowNode[]) => {
     try {
+      setGenerationStage('explanation');
+      setGenerationProgress(85);
       const explanation = await generateWorkflowExplanation(idea, requirements, nodes);
       setWorkflowExplanation(explanation);
+      setGenerationProgress(95);
     } catch (err) {
       console.error('Failed to generate explanation:', err);
       setWorkflowExplanation('This workflow is tailored to your project\'s requirements, connecting each component for optimal scalability, security, and user experience.');
+      setGenerationProgress(95);
     }
   };
   
@@ -134,9 +174,11 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
         return;
       }
       
-      // Otherwise fetch it from the API
-      console.log(`Calling API for ${node.label} description...`);
-      const description = await generateNodeDescription(node.type, node.label);
+      // Otherwise fetch it from the API (fallback only)
+      // Provide immediate, local templated description to reduce perceived latency
+      setNodeDescription(quickDescriptionTemplate(node));
+      console.log(`Calling API for ${node.label} description (fallback mode)...`);
+      const description = await generateNodeDescription(node.type, node.label, projectData.idea);
       console.log(`API returned description for ${node.label}:`, description?.substring(0, 40) + '...');
       
       if (!description || description.trim().length < 5) {
@@ -170,7 +212,7 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
     } finally {
       setIsLoadingDescription(false);
     }
-  }, [workflowNodes, nodeDescriptions]);  // Pre-generate descriptions is now handled by the sequential implementation below
+  }, [workflowNodes, nodeDescriptions]);  // Pre-generate descriptions handled by batch call
   // This parallel implementation has been removed to avoid rate limiting
   React.useEffect(() => {
     // This code has been replaced by the sequential implementation below
@@ -380,6 +422,12 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
     if (priority === 'high') return 'bg-red-500';
     if (priority === 'low') return 'bg-gray-500';
     return 'bg-yellow-500';
+  };
+
+  // Local helper: quick fallback/placeholder description that references the project idea to reduce perceived latency
+  const quickDescriptionTemplate = (node: WorkflowNode): string => {
+    const ideaText = projectData?.idea || 'this project';
+    return `**${node.label}**\n\n*A ${node.type} component for ${ideaText}*\n\n- Handles core ${node.type} functionality\n- Integrates with connected components\n- Ensures security and reliability`;
   };
 
   // Drag functionality
@@ -704,95 +752,27 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
       
       setWorkflowNodes(updatedNodes);
     }
-  }, [workflowGenerated, diagramSize.width, diagramSize.height]);  // Pre-generate descriptions when workflow is created  // Pre-generate node descriptions as soon as workflow nodes are available
+  }, [workflowGenerated, diagramSize.width, diagramSize.height]);
+
+  // DISABLED: Pre-generation of node descriptions to avoid rate limiting
+  // Descriptions will now only be generated on-demand when user clicks a node
   React.useEffect(() => {
-    if (workflowNodes.length > 0 && workflowGenerated) {
-      // Generate workflow explanation
-      fetchWorkflowExplanation(projectData.idea, projectData.requirements, workflowNodes);
+    if (workflowNodes.length > 0 && workflowGenerated && !hasGeneratedExplanation && !isGeneratingExplanation.current) {
+      // Only generate the workflow explanation, NOT individual node descriptions
+      isGeneratingExplanation.current = true;
       
-      // Pre-generate descriptions for all nodes with improved error handling and feedback
-      const generateAllNodeDescriptions = async () => {
-        console.log('Starting pre-generation of node descriptions...');
-        const descriptions: Record<string, string> = { ...nodeDescriptions };
-        let updatedCount = 0;
-        let attemptedCount = 0;
-        
-        try {
-          // Process nodes one at a time to avoid rate limiting
-          for (const node of workflowNodes) {
-            attemptedCount++;
-            
-            // Skip nodes that already have valid descriptions
-            if (descriptions[node.id] && descriptions[node.id].length > 10) {
-              console.log(`Description for ${node.label} already exists, skipping`);
-              continue;
-            }
-            
-            console.log(`Pre-generating description for ${node.label} (${attemptedCount}/${workflowNodes.length})...`);
-            try {
-              // Generate description from API with timeout safety
-              const descriptionPromise = generateNodeDescription(node.type, node.label);
-              
-              // Set a timeout to prevent hanging
-              const timeoutPromise = new Promise<string>((_, reject) => {
-                setTimeout(() => reject(new Error('Description generation timed out')), 8000);
-              });
-              
-              // Race between the actual API call and the timeout
-              const description = await Promise.race([descriptionPromise, timeoutPromise]);
-              
-              // Validate the description format and content
-              if (description && description.length > 10) {
-                console.log(`Got description for ${node.label}:`, description.substring(0, 40) + '...');
-                
-                // Check for proper markdown formatting
-                const hasMarkdown = description.includes('**') || description.includes('*') || description.includes('- ');
-                const formattedDescription = hasMarkdown ? description : 
-                  `**${node.label}**\n\n*${description}*\n\n- Core ${node.type} functionality\n- Seamless integration`;
-                
-                descriptions[node.id] = formattedDescription;
-                updatedCount++;
-                
-                // Update descriptions state immediately after each successful generation
-                // This provides real-time feedback in the UI
-                setNodeDescriptions(prev => ({
-                  ...prev,
-                  [node.id]: formattedDescription
-                }));
-              } else {
-                throw new Error('Empty or invalid description received');
-              }
-            } catch (error) {
-              console.error(`Failed to pre-generate description for ${node.label}:`, error);
-              // Create a meaningful fallback with proper markdown
-              const fallbackDesc = `**${node.type.toUpperCase()} Component**\n\n*${node.label}* provides essential functionality for your architecture.\n\n- Handles ${node.type} operations\n- Connects with ${node.connections.length} other components\n- Ensures reliable service delivery`;
-              
-              descriptions[node.id] = fallbackDesc;
-              
-              // Update state with fallback
-              setNodeDescriptions(prev => ({
-                ...prev,
-                [node.id]: fallbackDesc
-              }));
-              
-              // Still count this as an update as we have a fallback
-              updatedCount++;
-            }
-            
-            // Small delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-          
-          console.log(`✅ Finished pre-generating descriptions for ${updatedCount}/${workflowNodes.length} nodes`);
-        } catch (error) {
-          console.error('Error during node description pre-generation:', error);
-        }
+      const delayedExplanation = async () => {
+        // Wait a short, configurable time after workflow/tech stack to avoid cascading 429s
+        console.log(`Waiting ${MIN_REQUEST_INTERVAL}ms before generating delayed workflow explanation...`);
+        await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL));
+        await fetchWorkflowExplanation(projectData.idea, projectData.requirements, workflowNodes);
+        setHasGeneratedExplanation(true);
       };
-      
-      generateAllNodeDescriptions();
+      delayedExplanation();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowGenerated, workflowNodes, nodeDescriptions]);  const handleContinue = () => {
+  }, [workflowNodes.length, workflowGenerated, hasGeneratedExplanation]);
+
+  const handleContinue = () => {
     onComplete({ nodes: workflowNodes }, techStack);
   };
 
@@ -840,21 +820,24 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
   // --- Progress bar overlay when AI is generating ---
   if (isGenerating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-red-900/80 flex items-center justify-center p-6 relative">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6 relative">
         <div className="absolute top-0 left-0 w-full h-2 z-20">
           <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-            <div className="bg-gradient-to-r from-red-600 to-gray-700 h-2 rounded-full animate-[pulse_4s_ease-in-out_infinite]" style={{ width: '100%' }}></div>
-          </div>
-        </div>
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-700/20 to-gray-700/20 rounded-3xl blur-2xl animate-[pulse_6s_ease-in-out_infinite]"></div>
-          <div className="relative bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-16 text-center shadow-2xl">
-            <Brain className="h-16 w-16 text-red-400 mx-auto mb-8 animate-[pulse_5s_ease-in-out_infinite]" />
-            <h2 className="text-2xl font-semibold text-white mb-4 tracking-tight">AI Generating Workflow</h2>
-            <p className="text-base text-red-200 mb-8 max-w-md mx-auto">Analyzing your requirements and generating a futuristic architecture...</p>
+            <div className="bg-gradient-to-r from-red-600 to-gray-700 h-2 rounded-full transition-all duration-500 ease-out" style={{ width: `${generationProgress}%` }}></div>
+              <div 
+                className="absolute top-0 left-0 rounded-3xl"
+                style={{ 
+                  width: `${diagramSize.width}px`,
+                  height: `${diagramSize.height}px`,
+                  // radial gradient anchored to diagram center - grows with diagram size
+                  backgroundImage: `radial-gradient(ellipse at center, rgba(220,38,38,0.08), rgba(107,114,128,0.06) 40%, transparent 70%)`,
+                  filter: 'blur(20px)'
+                }}
+              ></div>
+            <p className="text-base text-red-200 mb-8 max-w-md mx-auto">{generationStage === 'workflow' ? 'Analyzing your requirements and generating the architecture...' : generationStage === 'techStack' ? 'Selecting technologies and providing reasons for each...' : generationStage === 'descriptions' ? 'Generating component descriptions for the workflow...' : generationStage === 'explanation' ? 'Generating a contextual explanation for the workflow...' : generationStage === 'done' ? 'Finishing up the output...' : 'AI is working on your request...'}</p>
             <div className="flex items-center justify-center space-x-4">
               <Loader2 className="h-7 w-7 animate-spin text-red-400" />
-              <span className="text-red-300 font-medium text-base">Processing...</span>
+              <span className="text-red-300 font-medium text-base">{generationStage === 'workflow' ? 'Workflow' : generationStage === 'techStack' ? 'Tech Stack' : generationStage === 'descriptions' ? 'Descriptions' : generationStage === 'explanation' ? 'Explanation' : generationStage === 'done' ? 'Done' : 'Processing...' }: {generationProgress}%</span>
             </div>
           </div>
         </div>
@@ -863,7 +846,7 @@ const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-red-900/80 p-6">
+    <div className="min-h-screen bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="relative mb-8">
