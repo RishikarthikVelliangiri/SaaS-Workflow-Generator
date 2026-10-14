@@ -36,3 +36,9 @@ dist-ssr
 *.pem
 config.js
 secrets.json
+
+# Local tooling output
+graphify-out/
+.impeccable/ref/
+.impeccable/review/
+.impeccable/questions/
