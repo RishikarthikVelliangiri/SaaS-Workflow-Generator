@@ -1,121 +1,113 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ArrowRight, Lightbulb, Code, Settings, Shield, Key } from 'lucide-react';
-import { isApiKeySet, clearApiKey } from '@/utils/deepseekApi';
+import { Textarea } from '@/components/ui/textarea';
+import ArchitectureChart from '@/components/chart/ArchitectureChart';
+import Legend from '@/components/chart/Legend';
+import { layoutPlan } from '@/components/chart/layout';
+import type { PlanNode } from '@/components/chart/symbols';
 
 interface LandingScreenProps {
+  initialIdea: string;
   onStart: (idea: string) => void;
 }
 
-const LandingScreen: React.FC<LandingScreenProps> = ({ onStart }) => {
-  const [idea, setIdea] = React.useState('');
-  // Model selection removed; we use OpenAI by default
-  // No model selection - OpenAI is enforced by default
+const node = (id: string, label: string, type: string, priority: PlanNode['priority'], connections: string[]): PlanNode => ({
+  id,
+  label,
+  type,
+  priority,
+  connections,
+  x: 0,
+  y: 0,
+});
 
-  const handleClearApiKey = () => {
-    clearApiKey();
-    // Force a page refresh to go back to API key input
-       globalThis.location.reload();
-  };
+// Synthetic example for the first screen. It is labelled as an example beside the chart.
+const EXAMPLE = layoutPlan(
+  [
+    node('web', 'Booking app', 'frontend', 'high', ['auth', 'api']),
+    node('cdn', 'Asset delivery', 'cdn', 'low', ['web']),
+    node('auth', 'Sign-in', 'auth', 'high', ['core']),
+    node('api', 'API', 'api', 'high', ['core']),
+    node('core', 'Scheduling service', 'backend', 'high', ['db', 'pay', 'sms']),
+    node('db', 'Appointments DB', 'database', 'high', []),
+    node('pay', 'Deposits', 'payment', 'medium', []),
+    node('sms', 'Reminders', 'notification', 'medium', []),
+  ],
+  720,
+);
 
-  const handleSubmit = (e: React.FormEvent) => {
+const LandingScreen: React.FC<LandingScreenProps> = ({ initialIdea, onStart }) => {
+  const [idea, setIdea] = React.useState(initialIdea);
+  const [error, setError] = React.useState('');
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (idea.trim()) {
-      onStart(idea);
-    }
+    if (idea.trim()) onStart(idea.trim());
+    else setError('Describe your idea in a sentence to continue.');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-red-900/80 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* API Key Status Header */}
-        <div className="absolute top-6 right-6">
-          <div className="flex items-center space-x-2 bg-gray-900/60 backdrop-blur-2xl border border-green-500/30 rounded-xl px-3 py-2">
-            <Shield className="h-4 w-4 text-green-400" />
-            <span className="text-sm text-green-200">API Key Active</span>
-            <Button
-              onClick={handleClearApiKey}
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-green-300 hover:text-red-300 hover:bg-red-500/20"
-            >
-              <Key className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
+    <div className="mx-auto grid max-w-[84rem] gap-x-14 gap-y-12 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:py-16">
+      <div className="self-start">
+        <h1 className="font-display text-[clamp(3rem,6.4vw,5.5rem)] font-bold uppercase leading-[0.92] tracking-[-0.01em]">
+          Plot your SaaS before you build it
+        </h1>
+        <p className="mt-6 max-w-[44ch] text-[1.125rem] leading-relaxed text-muted-foreground">
+          Describe the idea and answer six plain questions. You get a diagram of the parts, the technology for each, and
+          the reason it was chosen.
+        </p>
 
-        {/* Header */}
-        <div className="text-center mb-20 pt-20">
-          <h1 className="text-4xl font-light text-white mb-6 tracking-tight drop-shadow-neon">
-            SaaS Architect
-          </h1>
-          <p className="text-base text-red-200 max-w-2xl mx-auto leading-relaxed">
-            Transform your idea into a structured project plan with intelligent, futuristic guidance.
+        <form onSubmit={submit} className="mt-10 max-w-[34rem]">
+          <label htmlFor="idea" className="label-caps mb-2 block">
+            Your idea
+          </label>
+          <Textarea
+            id="idea"
+            rows={5}
+            value={idea}
+            onChange={e => {
+              setIdea(e.target.value);
+              setError('');
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'idea-error' : undefined}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(e);
+            }}
+            placeholder="A project management tool for remote teams"
+            className="min-h-[9.5rem] resize-none"
+          />
+          <p id="idea-error" role="alert" className="mt-2 min-h-[1.5rem] font-medium text-destructive">
+            {error}
           </p>
-        </div>
-
-        {/* Main Form */}
-        <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-12 max-w-3xl mx-auto mb-20 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div>              <label htmlFor="saas-idea-input" className="block text-base font-medium text-gray-200 mb-4">
-                Describe your SaaS idea
-              </label>
-              <Input
-                id="saas-idea-input"
-                type="text"
-                placeholder="e.g., A project management tool for remote teams..."
-                value={idea}
-                onChange={(e) => setIdea(e.target.value)}
-                className="h-14 text-base bg-gray-800/80 border-red-400/30 rounded-2xl focus:border-red-400 focus:ring-2 focus:ring-red-400/20 transition-all text-white"
-              />
-            {/* Model dropdown removed - app uses OpenAI by default */}
-            </div>
-            
-            <Button
-              type="submit"
-              disabled={!idea.trim()}
-              className="w-full h-14 bg-gradient-to-r from-red-600 to-gray-700 hover:from-red-500 hover:to-gray-600 text-white font-medium rounded-2xl transition-all duration-300 text-base shadow-neon"
-            >
-              Start Planning
-              <ArrowRight className="ml-3 h-5 w-5" />
+          <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Button type="submit" size="lg">
+              Plan this idea
+              <ArrowRight />
             </Button>
-          </form>
-        </div>
-
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
-            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Lightbulb className="h-7 w-7 text-red-400" />
-            </div>
-            <h3 className="text-base font-semibold text-white mb-2">Smart Planning</h3>
-            <p className="text-xs text-red-200 leading-relaxed">
-              AI-guided requirements gathering for comprehensive project scope
-            </p>
+            <p className="text-[0.9375rem] text-muted-foreground">Runs on your own OpenRouter key.</p>
           </div>
-
-          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
-            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Settings className="h-7 w-7 text-red-400" />
-            </div>
-            <h3 className="text-base font-semibold text-white mb-2">Architecture Design</h3>
-            <p className="text-xs text-red-200 leading-relaxed">
-              Visual workflow generation with modern tech stack recommendations
-            </p>
-          </div>
-
-          <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/20 rounded-3xl p-8 text-center hover:bg-gray-900/80 transition-all duration-300 shadow-neon">
-            <div className="w-14 h-14 bg-red-500/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-              <Code className="h-7 w-7 text-red-400" />
-            </div>
-            <h3 className="text-base font-semibold text-white mb-2">Code Generation</h3>
-            <p className="text-xs text-red-200 leading-relaxed">
-              Production-ready starter code and comprehensive documentation
-            </p>
-          </div>
-        </div>
+        </form>
       </div>
+
+      <figure className="min-w-0 self-start">
+        <div className="overflow-x-auto border border-border bg-card">
+          <div className="min-w-[560px] p-2">
+            <ArchitectureChart
+              nodes={EXAMPLE.nodes}
+              layout={EXAMPLE}
+              readOnly
+              animate
+              label="Example architecture chart for a dog groomer booking tool"
+            />
+          </div>
+        </div>
+        <figcaption className="mt-3 text-[0.9375rem] text-muted-foreground">
+          Example plan for a dog-groomer booking tool. It is a sample, not generated from your idea.
+        </figcaption>
+        <Legend types={EXAMPLE.nodes.map(n => n.type)} className="mt-5" />
+      </figure>
     </div>
   );
 };

@@ -1,270 +1,259 @@
 import React from 'react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Question {
   id: string;
+  short: string;
   question: string;
-  type: 'text' | 'textarea' | 'select' | 'multiselect';
+  type: 'textarea' | 'select' | 'multiselect';
   options?: string[];
   placeholder?: string;
-  allowAiDecision?: boolean;
 }
 
 const questions: Question[] = [
   {
     id: 'audience',
+    short: 'Audience',
     question: 'Who is your target audience?',
     type: 'textarea',
     placeholder: 'Describe your ideal users, their needs, and pain points...',
-    allowAiDecision: true
   },
   {
     id: 'features',
+    short: 'Features',
     question: 'What are the core features you envision?',
     type: 'textarea',
     placeholder: 'List the main features and functionalities...',
-    allowAiDecision: true
   },
   {
     id: 'authentication',
+    short: 'Sign-in',
     question: 'What authentication methods do you need?',
     type: 'multiselect',
     options: ['Email/Password', 'Social Login (Google, GitHub)', 'SSO', 'Multi-factor Authentication'],
-    allowAiDecision: true
   },
   {
     id: 'payment',
+    short: 'Payments',
     question: 'Do you need payment processing?',
     type: 'select',
     options: ['No payments needed', 'One-time payments', 'Subscriptions', 'Both one-time and subscriptions'],
-    allowAiDecision: true
   },
   {
     id: 'scale',
+    short: 'Scale',
     question: 'What scale are you planning for?',
     type: 'select',
     options: ['MVP (< 1K users)', 'Growing (1K-10K users)', 'Scale (10K-100K users)', 'Enterprise (100K+ users)'],
-    allowAiDecision: true
   },
   {
     id: 'integrations',
+    short: 'Integrations',
     question: 'Any specific third-party integrations needed?',
     type: 'textarea',
     placeholder: 'APIs, services, or tools you want to integrate...',
-    allowAiDecision: true
-  }
+  },
 ];
+
+const AI = 'AI_DECIDE';
 
 interface RequirementsGatheringProps {
   idea: string;
+  initial: Record<string, any>;
   onComplete: (responses: Record<string, any>) => void;
-  onBack: () => void;
+  onBack: (responses: Record<string, any>) => void;
 }
 
-const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ idea, onComplete, onBack }) => {
-  const [currentStep, setCurrentStep] = React.useState(0);
-  const [responses, setResponses] = React.useState<Record<string, any>>({});
+const isEmpty = (v: unknown) => v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
 
-  const currentQuestion = questions[currentStep];
-  const progress = ((currentStep + 1) / questions.length) * 100;
+const RequirementsGathering: React.FC<RequirementsGatheringProps> = ({ idea, initial, onComplete, onBack }) => {
+  const [step, setStep] = React.useState(0);
+  const [responses, setResponses] = React.useState<Record<string, any>>(initial);
+  const headingRef = React.useRef<HTMLHeadingElement>(null);
 
-  const handleNext = () => {
-    if (currentStep < questions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onComplete(responses);
-    }
+  const q = questions[step];
+  const value = responses[q.id];
+  const delegated = value === AI;
+  const last = step === questions.length - 1;
+
+  React.useEffect(() => {
+    headingRef.current?.focus({ preventScroll: true });
+  }, [step]);
+
+  const update = (v: any) => setResponses(prev => ({ ...prev, [q.id]: v }));
+
+  // A question left blank is sent as "let the AI decide", not as an empty string in the prompt.
+  const finish = () => {
+    const out: Record<string, any> = {};
+    for (const item of questions) out[item.id] = isEmpty(responses[item.id]) ? AI : responses[item.id];
+    onComplete(out);
   };
 
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      onBack();
-    }
-  };
+  const next = () => (last ? finish() : setStep(step + 1));
+  const back = () => (step === 0 ? onBack(responses) : setStep(step - 1));
 
-  const updateResponse = (value: any) => {
-    setResponses(prev => ({
-      ...prev,
-      [currentQuestion.id]: value
-    }));
-  };
-
-  const handleAiDecision = () => {
-    updateResponse('AI_DECIDE');
+  const status = (id: string) => {
+    const v = responses[id];
+    if (v === AI) return 'AI decides';
+    return isEmpty(v) ? '' : 'Answered';
   };
 
   const renderInput = () => {
-    const value = responses[currentQuestion.id] || '';
-    const isAiDecision = value === 'AI_DECIDE';
-
-    if (isAiDecision) {
+    if (delegated) {
       return (
-        <div className="bg-gray-900/60 border border-red-500/30 rounded-2xl p-8 text-center shadow-neon">
-          <Sparkles className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <p className="text-lg text-white font-medium">AI will decide this for you</p>
-          <p className="text-red-200 mt-2">Our AI will analyze your project idea and make the best recommendation</p>
-          <Button
-            onClick={() => updateResponse('')}
-            variant="outline"
-            className="mt-4 bg-gray-900/60 border-red-500/30 hover:bg-gray-900/80 text-white"
-          >
-            Change my mind
+        <div className="border border-border bg-card p-5">
+          <p className="max-w-[52ch] text-[1.0625rem] leading-relaxed">
+            The model will choose for this one from your idea and general good practice.
+          </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => update('')}>
+            Answer it myself
           </Button>
         </div>
       );
     }
 
-    switch (currentQuestion.type) {
-      case 'textarea':
-        return (
-          <Textarea
-            value={value}
-            onChange={(e) => updateResponse(e.target.value)}
-            placeholder={currentQuestion.placeholder}
-            className="min-h-32 text-base bg-gray-800/80 border-red-400/30 rounded-2xl focus:border-red-400 focus:ring-2 focus:ring-red-400/20 resize-none transition-all text-white placeholder:text-gray-300"
-          />
-        );
-      
-      case 'select':
-        return (
-          <div className="space-y-4">
-            {currentQuestion.options?.map((option) => (
-              <Card
-                key={option}
-                className={`bg-gray-900/60 border border-red-500/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-gray-900/80 hover:shadow-neon ${
-                  value === option ? 'ring-2 ring-red-400 bg-gray-900/80' : ''
-                }`}
-                onClick={() => updateResponse(option)}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-5 h-5 rounded-full border-2 transition-all ${
-                    value === option ? 'bg-red-500 border-red-500' : 'border-red-400'
-                  }`}></div>
-                  <span className="text-base text-white">{option}</span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        );
-      
-      case 'multiselect':
-        const selectedOptions = Array.isArray(value) ? value : [];
-        return (
-          <div className="space-y-4">
-            {currentQuestion.options?.map((option) => (
-              <Card
-                key={option}
-                className={`bg-gray-900/60 border border-red-500/20 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-gray-900/80 hover:shadow-neon ${
-                  selectedOptions.includes(option) ? 'ring-2 ring-red-400 bg-gray-900/80' : ''
-                }`}
-                onClick={() => {
-                  const newSelected = selectedOptions.includes(option)
-                    ? selectedOptions.filter(item => item !== option)
-                    : [...selectedOptions, option];
-                  updateResponse(newSelected);
-                }}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-5 h-5 rounded border-2 transition-all ${
-                    selectedOptions.includes(option) ? 'bg-red-500 border-red-500' : 'border-red-400'
-                  }`}></div>
-                  <span className="text-base text-white">{option}</span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        );
-      
-      default:
-        return (
-          <Input
-            value={value}
-            onChange={(e) => updateResponse(e.target.value)}
-            placeholder={currentQuestion.placeholder}
-            className="h-14 text-base bg-gray-800/80 border-red-400/30 rounded-2xl focus:border-red-400 focus:ring-2 focus:ring-red-400/20 transition-all text-white placeholder:text-gray-300"
-          />
-        );
+    if (q.type === 'textarea') {
+      return (
+        <Textarea
+          aria-labelledby="question-heading"
+          value={typeof value === 'string' ? value : ''}
+          onChange={e => update(e.target.value)}
+          placeholder={q.placeholder}
+          rows={5}
+          className="max-w-[44rem] resize-none"
+        />
+      );
     }
+
+    const multi = q.type === 'multiselect';
+    const selected: string[] = multi ? (Array.isArray(value) ? value : []) : [];
+    return (
+      <fieldset className="max-w-[44rem]">
+        <legend className="sr-only">{q.question}</legend>
+        <div className="border-b border-border">
+          {q.options!.map(option => {
+            const on = multi ? selected.includes(option) : value === option;
+            return (
+              <label
+                key={option}
+                className={cn(
+                  'flex min-h-[3.5rem] cursor-pointer items-center gap-4 border-t border-border px-3 py-3 transition-colors hover:bg-accent/60',
+                  on && 'bg-accent',
+                )}
+              >
+                <input
+                  type={multi ? 'checkbox' : 'radio'}
+                  name={q.id}
+                  checked={on}
+                  onChange={() =>
+                    multi ? update(on ? selected.filter(s => s !== option) : [...selected, option]) : update(option)
+                  }
+                  className="peer sr-only"
+                />
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'grid size-5 shrink-0 place-items-center border-[1.5px] border-foreground/70 text-primary-foreground transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring',
+                    multi ? 'rounded-[2px]' : 'rounded-full',
+                    on && 'border-primary bg-primary',
+                  )}
+                >
+                  {on && (multi ? <Check className="size-3.5" strokeWidth={3} /> : <span className="size-2 rounded-full bg-primary-foreground" />)}
+                </span>
+                <span className="text-[1.0625rem]">{option}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-red-900/80 flex items-center justify-center p-6">
-      <div className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-12 max-w-4xl w-full shadow-2xl animate-fade-in">
-        {/* Progress Bar */}
-        <div className="mb-12">
-          <div className="flex justify-between text-xs text-red-200 mb-3">
-            <span>Step {currentStep + 1} of {questions.length}</span>
-            <span>{Math.round(progress)}% Complete</span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-            <div 
-              className="bg-gradient-to-r from-red-600 to-gray-700 h-3 rounded-full transition-all duration-700"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Question */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-white mb-8 leading-tight drop-shadow-neon">
-            {currentQuestion.question}
-          </h2>
-          
-          {/* AI Decision Button */}
-          {currentQuestion.allowAiDecision && responses[currentQuestion.id] !== 'AI_DECIDE' && (
-            <div className="mb-8">
-              <Button
-                onClick={handleAiDecision}
-                className="bg-gradient-to-r from-red-600 to-gray-700 hover:from-red-500 hover:to-gray-600 text-white px-6 py-3 rounded-2xl transition-all mb-6 shadow-neon"
-              >
-                <Sparkles className="mr-2 h-5 w-5" />
-                Let AI decide
-              </Button>
-            </div>
-          )}
-          
-          {responses[currentQuestion.id] === 'AI_DECIDE' ? (
-            <div className="bg-gray-900/60 border border-red-500/30 rounded-2xl p-8 text-center shadow-neon">
-              <Sparkles className="h-12 w-12 text-red-400 mx-auto mb-4" />
-              <p className="text-lg text-white font-medium">AI will decide this for you</p>
-              <p className="text-red-200 mt-2">Our AI will analyze your project idea and make the best recommendation</p>
-              <Button
-                onClick={() => updateResponse('')}
-                variant="outline"
-                className="mt-4 bg-gray-900/60 border-red-500/30 hover:bg-gray-900/80 text-white"
-              >
-                Change my mind
-              </Button>
-            </div>
-          ) : renderInput()}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <Button
-            onClick={handlePrevious}
-            variant="outline"
-            className="bg-gray-900/60 border-red-500/30 hover:bg-gray-900/80 text-white px-8 py-4 rounded-2xl transition-all"
+    <div className="mx-auto grid max-w-[84rem] gap-x-16 gap-y-10 px-5 py-10 sm:px-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:py-16">
+      <aside className="lg:sticky lg:top-8 lg:self-start">
+        <nav aria-label="Questions">
+          <div className="h-1.5 rounded-[1px] bg-foreground/85" aria-hidden="true" />
+          <ol className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:block lg:space-y-2">
+            {questions.map((item, i) => {
+              const s = status(item.id);
+              const current = i === step;
+              return (
+                <li
+                  key={item.id}
+                  className={cn(
+                    'border bg-strip shadow-[0_1px_0_hsl(var(--strip-edge)),0_3px_8px_-4px_hsl(208_36%_12%/0.35)] transition-[margin] duration-200 ease-out',
+                    current ? 'border-primary shadow-[0_0_0_1px_hsl(var(--primary))]' : 'border-strip-edge',
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setStep(i)}
+                    aria-current={current ? 'step' : undefined}
+                    className="block w-full px-2.5 py-2 text-left"
+                  >
+                    <span className={cn('flex items-baseline gap-2 font-label text-[0.9375rem] uppercase tracking-[0.07em]', current ? 'font-bold' : 'font-semibold')}>
+                      <span className="tabular-nums">{i + 1}</span>
+                      {item.short}
+                    </span>
+                    <span className="mt-0.5 block min-h-[1rem] font-label text-[0.75rem] uppercase tracking-[0.06em] text-muted-foreground">
+                      {s || 'Open'}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+        <div className="mt-8 hidden lg:block">
+          <p className="label-caps text-muted-foreground">Your idea</p>
+          <p className="mt-1.5 line-clamp-4 text-[0.9375rem] leading-relaxed">{idea}</p>
+          <button
+            type="button"
+            onClick={() => onBack(responses)}
+            className="mt-2 text-[0.9375rem] text-primary underline underline-offset-4"
           >
-            <ChevronLeft className="mr-2 h-5 w-5" />
-            {currentStep === 0 ? 'Back to Start' : 'Previous'}
-          </Button>
-          
-          <Button
-            onClick={handleNext}
-            className="bg-gradient-to-r from-red-600 to-gray-700 hover:from-red-500 hover:to-gray-600 text-white px-8 py-4 rounded-2xl transition-all shadow-neon"
+            Change idea
+          </button>
+        </div>
+      </aside>
+
+      <section aria-labelledby="question-heading" className="min-w-0">
+        <h2
+          id="question-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="max-w-[20ch] font-display text-[clamp(2.25rem,4.4vw,3.75rem)] font-bold uppercase leading-[0.98] tracking-[-0.005em] outline-none"
+        >
+          {q.question}
+        </h2>
+
+        <div className="mt-8">{renderInput()}</div>
+
+        {!delegated && (
+          <button
+            type="button"
+            onClick={() => update(AI)}
+            className="mt-5 text-[0.9375rem] text-primary underline underline-offset-4"
           >
-            {currentStep === questions.length - 1 ? 'Generate Workflow' : 'Next'}
-            <ChevronRight className="ml-2 h-5 w-5" />
+            Not sure? Let the AI decide this one
+          </button>
+        )}
+
+        <div className="mt-12 flex max-w-[44rem] items-center justify-between border-t border-border pt-6">
+          <Button variant="ghost" onClick={back}>
+            <ArrowLeft />
+            {step === 0 ? 'Idea' : 'Back'}
+          </Button>
+          <Button size="lg" onClick={next}>
+            {last ? 'Generate plan' : 'Next'}
+            <ArrowRight />
           </Button>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

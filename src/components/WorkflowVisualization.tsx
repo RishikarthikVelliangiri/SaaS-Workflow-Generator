@@ -1,22 +1,28 @@
 import React from 'react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Brain, Loader2, Eye, BarChart3, GripVertical, ChevronRight, CornerRightDown, Settings, Code, Database, Cloud } from 'lucide-react';
-import { generateWorkflowNodes, generateWorkflowExplanation, generateNodeDescription, generateBatchNodeDescriptions, generateTechStackWithReasons, MIN_REQUEST_INTERVAL } from '@/utils/deepseekApi';
+import RichText from '@/components/RichText';
+import ArchitectureChart from '@/components/chart/ArchitectureChart';
+import Legend from '@/components/chart/Legend';
+import StripRack from '@/components/chart/StripRack';
+import { Layout, layoutPlan } from '@/components/chart/layout';
+import { NavSymbol, PlanNode, RING_RADIUS } from '@/components/chart/symbols';
+import { cn } from '@/lib/utils';
+import {
+  generateBatchNodeDescriptions,
+  generateTechStackWithReasons,
+  generateWorkflowExplanation,
+  generateWorkflowNodes,
+  getApiFailures,
+  isTemplateDescription,
+  resetApiFailures,
+} from '@/utils/deepseekApi';
 
-interface WorkflowNode {
+interface TechItem {
   id: string;
-  label: string;
-  type: string;
-  x: number;
-  y: number;
-  connections: string[];
-  description?: string;
-  priority?: 'high' | 'medium' | 'low';
-  status?: 'active' | 'pending' | 'offline';
-  aiSuggestion?: string;
-  group?: string; // e.g., 'microservice', 'core', 'infra'
-  microservice?: boolean;
+  name: string;
+  category: string;
+  reason: string;
 }
 
 interface WorkflowVisualizationProps {
@@ -24,1378 +30,291 @@ interface WorkflowVisualizationProps {
     idea: string;
     requirements: Record<string, any>;
   };
-  onComplete: (workflowData: any, techStackData: any) => void;
   onBack: () => void;
+  onRestart: () => void;
 }
 
-const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ 
-  projectData, 
-  onComplete, 
-  onBack 
-}): JSX.Element => {
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [workflowNodes, setWorkflowNodes] = React.useState<WorkflowNode[]>([]);
-  const [selectedNode, setSelectedNode] = React.useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
-  const [workflowGenerated, setWorkflowGenerated] = React.useState(false);
-  const [workflowExplanation, setWorkflowExplanation] = React.useState<string>('');
-  const [nodeDescription, setNodeDescription] = React.useState<string>('');
-  const [nodeDescriptions, setNodeDescriptions] = React.useState<Record<string, string>>({});
-  const [isLoadingDescription, setIsLoadingDescription] = React.useState<boolean>(false);
-  const [diagramSize, setDiagramSize] = React.useState({ width: 800, height: 500 });
-  const [isResizing, setIsResizing] = React.useState(false);
-  const [resizeCount, setResizeCount] = React.useState(0); // Debug counter
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [draggedNode, setDraggedNode] = React.useState<string | null>(null);
-  const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
-  const [hasGeneratedExplanation, setHasGeneratedExplanation] = React.useState(false);
-  
-  // Tech stack related state
-  const [techStack, setTechStack] = React.useState<any[]>([]);
-  const [isTechStackLoading, setIsTechStackLoading] = React.useState(false);
-  const [techStackError, setTechStackError] = React.useState<string | null>(null);
-  const diagramRef = React.useRef<HTMLDivElement>(null);
-  const svgRef = React.useRef<SVGSVGElement>(null);
-  const isGeneratingExplanation = React.useRef(false);
-  const [generationProgress, setGenerationProgress] = React.useState<number>(0);
-  const [generationStage, setGenerationStage] = React.useState<'idle' | 'workflow' | 'techStack' | 'descriptions' | 'explanation' | 'done'>('idle');
+type Stage = 'workflow' | 'techStack' | 'explanation' | 'descriptions' | 'done';
 
-  // Tech stack category icons
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'frontend':
-        return <Eye className="w-4 h-4" />;
-      case 'backend':
-        return <Settings className="w-4 h-4" />;
-      case 'database':
-        return <Database className="w-4 h-4" />;
-      case 'deployment':
-        return <Cloud className="w-4 h-4" />;
-      default:
-        return <Code className="w-4 h-4" />;
-    }
-  };
-  React.useEffect(() => {
-    generateBothWorkflowAndTechStack();
-  }, []);
+const STAGES: { id: Exclude<Stage, 'done'>; label: string; detail: string }[] = [
+  { id: 'workflow', label: 'Mapping the parts', detail: 'Choosing components and how they connect.' },
+  { id: 'techStack', label: 'Choosing technology', detail: 'Picking a tool for each category, with a reason.' },
+  { id: 'explanation', label: 'Writing the walkthrough', detail: 'Explaining how the pieces fit your requirements.' },
+  { id: 'descriptions', label: 'Describing each part', detail: 'Writing a short note for every component.' },
+];
 
-  const generateBothWorkflowAndTechStack = async () => {
-    setIsGenerating(true);
-    setGenerationStage('workflow');
-    setGenerationProgress(8);
-    setIsTechStackLoading(true);
-    
-    try {
-      console.log('Generating workflow and tech stack with rate limiting...');
-      
-      // Generate workflow first
-      const nodes = await generateWorkflowNodes(projectData.idea, projectData.requirements);
-      console.log('Generated nodes:', nodes);
-      setWorkflowNodes(nodes);
-      setGenerationStage('techStack');
-      setGenerationProgress(40);
-      setWorkflowGenerated(true);
-      setGenerationProgress(45);
-      
-      // Wait a short time to let queue settle; batch description will reduce API volume
-      console.log(`Waiting ${MIN_REQUEST_INTERVAL}ms before generating tech stack and node descriptions...`);
-      await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL));
-      
-      // Then generate tech stack
-      const techStackData = await generateTechStackWithReasons(projectData.idea, projectData.requirements);
-      console.log('Generated tech stack:', techStackData);
-      setTechStack(techStackData);
-      setGenerationStage('explanation');
-      setGenerationProgress(70);
-      // Fetch explanation after we have nodes and tech stack
-      await fetchWorkflowExplanation(projectData.idea, projectData.requirements, nodes);
-      setHasGeneratedExplanation(true); // prevent duplicate explanation generation from other effects
-      
-      // Generate descriptions for all nodes in a single batch request, then set cache
-      setGenerationStage('descriptions');
-      setGenerationProgress(80);
-      try {
-        setGenerationProgress(80);
-        const nodeInfo = nodes.map((n: any) => ({ id: n.id, label: n.label, type: n.type }));
-        const batchDescriptions = await generateBatchNodeDescriptions(projectData.idea, nodeInfo);
-        // Normalize and save into nodeDescriptions state
-        setNodeDescriptions(prev => ({ ...prev, ...batchDescriptions }));
-        setGenerationProgress(90);
-        setGenerationStage('explanation');
-      } catch (err) {
-        console.error('Batch descriptions failed; fallbacks will be used per node:', err);
-      }
-      setGenerationProgress(75);
-      
-    } catch (error) {
-      console.error('Error generating workflow and/or tech stack:', error);
-      if (error.message?.includes('tech stack')) {
-        setTechStackError('Failed to generate tech stack recommendations');
-      }
-      // Show fallback for workflow
-      setWorkflowGenerated(true);
-    } finally {
-      setIsGenerating(false);
-      setIsTechStackLoading(false);
-      setGenerationStage('done');
-      setGenerationProgress(100);
-      // Reset progress after a short delay so overlay hides gracefully
-      setTimeout(() => setGenerationProgress(0), 1200);
-    }
-  };
-  const fetchWorkflowExplanation = async (idea: string, requirements: Record<string, any>, nodes: WorkflowNode[]) => {
-    try {
-      setGenerationStage('explanation');
-      setGenerationProgress(85);
-      const explanation = await generateWorkflowExplanation(idea, requirements, nodes);
-      setWorkflowExplanation(explanation);
-      setGenerationProgress(95);
-    } catch (err) {
-      console.error('Failed to generate explanation:', err);
-      setWorkflowExplanation('This workflow is tailored to your project\'s requirements, connecting each component for optimal scalability, security, and user experience.');
-      setGenerationProgress(95);
-    }
-  };
-  
-  // Function to fetch AI-generated description when a node is selected
-  const fetchNodeDescription = React.useCallback(async (nodeId: string) => {
-    const node = workflowNodes.find(n => n.id === nodeId);
-    if (!node) return;
-    
-    setIsLoadingDescription(true);
-    try {
-      console.log(`Fetching description for ${node.label} (${nodeId})...`);
-      
-      // Check if we already have this description in our cache first
-      if (nodeDescriptions[nodeId] && nodeDescriptions[nodeId].length > 5) {
-        console.log(`Using cached description for ${node.label}`);
-        setNodeDescription(nodeDescriptions[nodeId]);
-        setIsLoadingDescription(false);
-        return;
-      }
-      
-      // Otherwise fetch it from the API (fallback only)
-      // Provide immediate, local templated description to reduce perceived latency
-      setNodeDescription(quickDescriptionTemplate(node));
-      console.log(`Calling API for ${node.label} description (fallback mode)...`);
-      const description = await generateNodeDescription(node.type, node.label, projectData.idea);
-      console.log(`API returned description for ${node.label}:`, description?.substring(0, 40) + '...');
-      
-      if (!description || description.trim().length < 5) {
-        throw new Error('Empty or invalid description received from API');
-      }
-      
-      // Save to our cache for future use
-      const formattedDescription = description.trim();
-      
-      // Update state with the new description
-      setNodeDescription(formattedDescription);
-      
-      // Also save to our cache for future use
-      setNodeDescriptions(prev => ({
-        ...prev,
-        [nodeId]: formattedDescription
-      }));
-    } catch (error) {
-      console.error('Error fetching node description:', error);
-      // Create a nicely formatted fallback description with proper markdown
-      const fallbackDescription = `**${node.type.toUpperCase()} Component**\n\n*${node.label}* provides essential functionality for your architecture. It integrates with other services to ensure seamless operation.\n\n- Handles data processing for the ${node.type} layer\n- Communicates with ${node.connections.length} connected components\n- Ensures secure and reliable service delivery`;
-      
-      console.log("Using fallback description:", fallbackDescription);
-      setNodeDescription(fallbackDescription);
-      
-      // Also save this fallback to the cache
-      setNodeDescriptions(prev => ({
-        ...prev,
-        [nodeId]: fallbackDescription
-      }));
-    } finally {
-      setIsLoadingDescription(false);
-    }
-  }, [workflowNodes, nodeDescriptions]);  // Pre-generate descriptions handled by batch call
-  // This parallel implementation has been removed to avoid rate limiting
-  React.useEffect(() => {
-    // This code has been replaced by the sequential implementation below
-  }, []);
-  
-  // Effect to fetch description when selected node changes (now uses pre-generated descriptions when available)
-  React.useEffect(() => {
-    if (selectedNode) {
-      // If we have a pre-generated description, use it
-      if (nodeDescriptions[selectedNode]) {
-        setNodeDescription(nodeDescriptions[selectedNode]);
-      } else {
-        // Otherwise fetch it on-demand
-        fetchNodeDescription(selectedNode);
-      }
-    } else {
-      setNodeDescription('');
-    }
-  }, [selectedNode, fetchNodeDescription, nodeDescriptions]);  // Format explanation text with proper HTML
-  const formatExplanation = (text: string) => {
-    if (!text) return '';
-    
-    return text
-      .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-red-300 font-semibold">$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em class="text-red-200 italic">$1</em>')
-      .split(/\.\s+/)
-      .filter(sentence => sentence.trim())
-      .map((sentence, index) => {
-        const trimmed = sentence.trim();
-        if (!trimmed) return '';
-        
-        // Add period if missing
-        const formatted = trimmed.endsWith('.') ? trimmed : `${trimmed}.`;
-        return `<p key="${index}" class="mb-3 text-sm leading-relaxed">${formatted}</p>`;
-      })
-      .join('');
-  };
-  // Enhanced markdown formatting for node descriptions with debugging
-  const formatMarkdownDescription = (text: string) => {
-    if (!text) return 'No description available';
-    
-    console.log("Raw text to format:", text);
-    
-    try {
-      // Clean up the text first (remove any unwanted formatting and standardize newlines)
-      let cleanedText = text
-        .replace(/\\n/g, '\n')
-        .replace(/\\"/g, '"')
-        .replace(/\\r/g, '')
-        .trim();
-      
-      // First, escape any HTML that might be in the text
-      const escapedText = cleanedText
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-      
-      // Then apply our markdown formatting
-      let formattedText = escapedText;
-      
-      // Format bold text - handle ** markdown
-      formattedText = formattedText.replace(
-        /\*\*([^*]+)\*\*/g, 
-        '<strong class="text-white font-semibold">$1</strong>'
-      );
-      
-      // Format italic text - handle single * with non-greedy matching
-      formattedText = formattedText.replace(
-        /\*([^*\n]+?)\*/g, 
-        '<em class="text-red-200 italic">$1</em>'
-      );
-      
-      // Format code blocks
-      formattedText = formattedText.replace(
-        /`([^`]+)`/g, 
-        '<code class="bg-gray-800/60 text-red-300 px-1.5 py-0.5 rounded text-xs">$1</code>'
-      );
-      
-      // Handle bullet points with more robust matching
-      formattedText = formattedText.replace(
-        /^[\s]*-[\s]+(.+)$/gm, 
-        '<div class="flex items-start mb-2"><span class="mr-2 text-red-400">•</span><span class="text-gray-300">$1</span></div>'
-      );
-      
-      // Convert double line breaks to paragraphs
-      const paragraphs = formattedText.split(/\n\n+/);
-      formattedText = paragraphs
-        .map(para => {
-          const trimmedPara = para.trim();
-          if (!trimmedPara) return '';
-          
-          // If paragraph already has HTML formatting, leave it alone
-          if (/<(div|strong|em|code|p|span)/.test(trimmedPara)) {
-            return trimmedPara;
-          }
-          
-          // Otherwise wrap in paragraph tags
-          return `<p class="mb-2 text-gray-300">${trimmedPara}</p>`;
-        })
-        .join('\n');
-      
-      // Replace remaining single newlines with line breaks
-      formattedText = formattedText.replace(/\n(?!<\/?(div|p))/g, '<br />');
-      
-      console.log("Formatted output:", formattedText);
-      return formattedText;
-    }
-    catch (error) {
-      console.error("Error formatting markdown:", error);
-      // If formatting fails, return the original text with minimal formatting
-      return `<p class="text-gray-300">${text.replace(/\n/g, '<br />')}</p>`;
-    }
-  };
-  
-  // Format node description with proper markdown rendering
-  const formatNodeDescription = (text: string) => {
-    if (!text) return '';
-    
-    return text
-      // Handle bold text
-      .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-      // Handle italic text
-      .replace(/\*([^*]+)\*/g, '<em class="text-gray-200 italic">$1</em>')
-      // Handle code blocks (backticks)
-      .replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1 rounded text-xs text-red-300">$1</code>')
-      // Handle links [text](url)
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-red-300 hover:text-red-200 underline" target="_blank">$1</a>')
-      // Handle lists
-      .replace(/^- (.+)$/gm, '<li class="ml-4 text-gray-300">$1</li>')
-      // Add paragraph styling
-      .split(/\n\n+/)
-      .map((paragraph, index) => {
-        if (!paragraph.trim()) return '';
-        if (paragraph.startsWith('<li>')) {
-          return `<ul class="my-2 list-disc">${paragraph}</ul>`;
-        }
-        return `<p class="mb-2 text-gray-300">${paragraph}</p>`;
-      })
-      .join('');
-  };
+const toggle = (set: ReadonlySet<string>, id: string) => {
+  const next = new Set(set);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+};
 
-  const getNodeIcon = (type: string) => {
-    const icons = {
-      frontend: '🖥️',
-      backend: '🧠',
-      database: '💾',
-      api: '🔗',
-      auth: '🔒',
-      payment: '💳',
-      storage: '🗄️',
-      notification: '🔔',
-      cache: '⚡',
-      cdn: '🌐',
-      analytics: '📈',
-      monitoring: '👁️',
-      ai: '🤖',
-      queue: '📬',
-      search: '🔍',
-      logging: '📝',
-      infra: '🛠️',
-    };
-    return icons[type as keyof typeof icons] || '🔧';
-  };
-  const getNodeGradient = (type: string, priority: string = 'medium') => {
-    const baseGradients = {
-      frontend: 'from-blue-500/40 to-blue-700/60',
-      backend: 'from-green-500/40 to-green-700/60',
-      database: 'from-yellow-500/40 to-yellow-700/60',
-      api: 'from-purple-500/40 to-purple-700/60',
-      auth: 'from-red-500/40 to-red-700/60',
-      payment: 'from-pink-500/40 to-pink-700/60',
-      storage: 'from-indigo-500/40 to-indigo-700/60',
-      notification: 'from-orange-500/40 to-orange-700/60',
-      cache: 'from-cyan-500/40 to-cyan-700/60',
-      cdn: 'from-teal-500/40 to-teal-700/60',
-      analytics: 'from-violet-500/40 to-violet-700/60',
-      monitoring: 'from-slate-500/40 to-slate-700/60',
-      ai: 'from-emerald-500/40 to-emerald-700/60',
-      queue: 'from-rose-500/40 to-rose-700/60',
-      search: 'from-amber-500/40 to-amber-700/60',
-      logging: 'from-stone-500/40 to-stone-700/60',
-      infra: 'from-zinc-500/40 to-zinc-700/60',
-    };
-    return baseGradients[type as keyof typeof baseGradients] || 'from-gray-500/40 to-gray-700/60';
-  };
-  const getComplexityColor = (nodeCount: number) => {
-    if (nodeCount > 10) return 'text-red-400';
-    if (nodeCount > 6) return 'text-yellow-400';
-    return 'text-green-400';
-  };
+// Each stage is a symbol on a short chart; the airway to the next one is plotted when its stage completes.
+const STAGE_SYMBOLS = ['backend', 'database', 'api', 'frontend'];
+const GEN_W = 760;
+const genX = (i: number) => 96 + (i * (GEN_W - 192)) / 3;
 
-  const getComplexityLabel = (nodeCount: number) => {
-    if (nodeCount > 10) return 'Enterprise';
-    if (nodeCount > 6) return 'Advanced';
-    return 'Simple';
-  };  const getNodeBorderClass = (nodeId: string) => {
-    if (selectedNode === nodeId) return 'border-red-400 shadow-red-500/50';
-    if (hoveredNode === nodeId) return 'border-gray-400/60';
-    return 'border-gray-600/40';
-  };  const getStatusIndicatorClass = (status: string | undefined) => {
-    if (status === 'active') return 'bg-green-400';
-    if (status === 'pending') return 'bg-yellow-400';
-    return 'bg-gray-400';
-  };
-
-  const getPriorityIndicatorClass = (priority: string | undefined) => {
-    if (priority === 'high') return 'bg-red-500';
-    if (priority === 'low') return 'bg-gray-500';
-    return 'bg-yellow-500';
-  };
-
-  // Local helper: quick fallback/placeholder description that references the project idea to reduce perceived latency
-  const quickDescriptionTemplate = (node: WorkflowNode): string => {
-    const ideaText = projectData?.idea || 'this project';
-    return `**${node.label}**\n\n*A ${node.type} component for ${ideaText}*\n\n- Handles core ${node.type} functionality\n- Integrates with connected components\n- Ensures security and reliability`;
-  };
-
-  // Drag functionality
-  const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setIsDragging(true);
-    setDraggedNode(nodeId);
-    
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    const node = workflowNodes.find(n => n.id === nodeId);
-    if (!node) return;
-    
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    
-    // Calculate offset from mouse to node position
-    setDragOffset({
-      x: mouseX - node.x,
-      y: mouseY - node.y
-    });
-  };
-  
-  // Handle mouse move for dragging with enhanced bounds checking
-  const updateNodePosition = React.useCallback((nodeId: string, newX: number, newY: number) => {
-    setWorkflowNodes(prev => 
-      prev.map(node => {
-        if (node.id === nodeId) {
-          const constrainedNode = ensureNodeWithinBounds(
-            { ...node, x: newX, y: newY }, 
-            diagramSize.width, 
-            diagramSize.height
-          );
-          return constrainedNode;
-        }
-        return node;
-      })
-    );
-  }, [diagramSize.width, diagramSize.height]);
-
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !draggedNode) return;
-      
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      
-      // Calculate new position (before bounds checking)
-      const newX = mouseX - dragOffset.x;
-      const newY = mouseY - dragOffset.y;
-      
-      updateNodePosition(draggedNode, newX, newY);
-    };
-    
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setDraggedNode(null);
-    };
-    
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, draggedNode, dragOffset, diagramSize, updateNodePosition]);
-  // Helper function to render a single connection with glassy futuristic lines but without costly animations
-  const renderConnection = (sourceNode: WorkflowNode, targetId: string) => {
-    const target = workflowNodes.find(n => n.id === targetId);
-    if (!target) return null;
-    
-    const isHighlighted = hoveredNode === sourceNode.id || hoveredNode === targetId;
-    const connectionId = `${sourceNode.id}-${targetId}`;
-    
-    // Calculate control points for curved lines
-    const sourceX = sourceNode.x + 85;
-    const sourceY = sourceNode.y + 50;
-    const targetX = target.x + 85;
-    const targetY = target.y + 50;
-    
-    const midX = (sourceX + targetX) / 2;
-    const midY = (sourceY + targetY) / 2;
-    const offsetY = Math.abs(targetX - sourceX) * 0.3;
-    
-    const pathData = `M ${sourceX} ${sourceY} Q ${midX} ${midY - offsetY} ${targetX} ${targetY}`;
-    
-    return (
-      <g key={connectionId}>
-        <defs>
-          <linearGradient id={`gradient-${connectionId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6b7280" stopOpacity="0.6" />
-            <stop offset="50%" stopColor="#ef4444" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#6b7280" stopOpacity="0.6" />
-          </linearGradient>
-          {/* Enhanced glassmorphic glow filter */}
-          <filter id={`glow-${connectionId}`}>
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge> 
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-          
-        {/* Outer glow path for glassy effect */}
-        <path
-          d={pathData}
-          stroke={`url(#gradient-${connectionId})`}
-          strokeWidth="5"
-          fill="none"
-          opacity="0.2"
-          filter={`url(#glow-${connectionId})`}
-          className="transition-all duration-500"
-        />
-        
-        {/* Main dotted connection path */}
-        <path
-          d={pathData}
-          stroke={`url(#gradient-${connectionId})`}
-          strokeWidth="1.5"
-          fill="none"
-          opacity={isHighlighted ? "0.95" : "0.8"}
-          strokeDasharray="6,4"
-          className="transition-all duration-300"
-        />
-
-        {/* Connection endpoint indicators */}
-        <circle
-          cx={sourceX}
-          cy={sourceY}
-          r={isHighlighted ? "4" : "2"}
-          fill={isHighlighted ? "#ef4444" : "#6b7280"}
-          opacity="0.9"
-          className="transition-all duration-300"
-          filter={isHighlighted ? `url(#glow-${connectionId})` : ""}
-        />
-        <circle
-          cx={targetX}
-          cy={targetY}
-          r={isHighlighted ? "4" : "2"}
-          fill={isHighlighted ? "#dc2626" : "#6b7280"}
-          opacity="0.9"
-          className="transition-all duration-300"
-          filter={isHighlighted ? `url(#glow-${connectionId})` : ""}
-        />
-      </g>
-    );
-  };
-
-  // Render connections between nodes
-  const renderConnections = () => {
-    if (!Array.isArray(workflowNodes)) return null;
-    
-    const connections: JSX.Element[] = [];
-    workflowNodes.forEach(node => {
-      const nodeConnections = Array.isArray(node.connections) ? node.connections : [];
-      nodeConnections.forEach(targetId => {
-        const connection = renderConnection(node, targetId);
-        if (connection) connections.push(connection);
-      });
-    });
-      return connections;
-  };
-  
-  // Enhanced bounds checking function with improved calculations
-  const ensureNodeWithinBounds = (node: WorkflowNode, width: number, height: number): WorkflowNode => {
-    const nodeWidth = 170;
-    const nodeHeight = 100;
-    const padding = 20;
-    const headerHeight = 70;
-    const panelPadding = 48;
-    const extraBuffer = 10; // Additional buffer for safety
-    
-    // Calculate available space more precisely
-    const availableWidth = width - panelPadding;
-    const availableHeight = height - headerHeight;
-    
-    const maxX = Math.max(0, availableWidth - nodeWidth - padding - extraBuffer);
-    const maxY = Math.max(0, availableHeight - nodeHeight - padding - extraBuffer);
-    const minX = padding;
-    const minY = padding;
-    
-    const constrainedX = Math.max(minX, Math.min(maxX, node.x));
-    const constrainedY = Math.max(minY, Math.min(maxY, node.y));
-    
-    return {
-      ...node,
-      x: constrainedX,
-      y: constrainedY
-    };
-  };
-
-  // Effect to reposition nodes when diagram is resized
-  React.useEffect(() => {
-    if (workflowNodes.length > 0) {
-      const repositionedNodes = workflowNodes.map(node => 
-        ensureNodeWithinBounds(node, diagramSize.width, diagramSize.height)
-      );
-      
-      // Only update if positions actually changed
-      const hasPositionChanges = repositionedNodes.some((node, index) => 
-        node.x !== workflowNodes[index].x || node.y !== workflowNodes[index].y
-      );
-      
-      if (hasPositionChanges) {
-        setWorkflowNodes(repositionedNodes);
-      }
-    }
-  }, [diagramSize.width, diagramSize.height]);
-
-  // Better organized layout system
-  React.useEffect(() => {
-    if (workflowNodes.length > 0 && workflowGenerated) {
-      // Define logical workflow groups with better positioning
-      const nodeTypes = {
-        client: ['frontend', 'cdn'],
-        security: ['auth'],
-        api: ['api'],
-        core: ['backend'],
-        data: ['database', 'storage', 'cache'],
-        services: ['payment', 'notification', 'analytics', 'monitoring'],
-        infra: ['ai', 'queue', 'search', 'logging', 'infra']
-      };
-      
-      // Group nodes by their types
-      const nodesByGroup: Record<string, WorkflowNode[]> = {};
-      
-      workflowNodes.forEach(node => {
-        let group = 'infra'; // default
-        for (const [groupName, types] of Object.entries(nodeTypes)) {
-          if (types.includes(node.type)) {
-            group = groupName;
-            break;
-          }
-        }
-        
-        if (!nodesByGroup[group]) {
-          nodesByGroup[group] = [];
-        }
-        nodesByGroup[group].push(node);
-      });
-        
-      // Calculate dynamic positions based on panel size
-      const nodeWidth = 170;
-      const nodeHeight = 100;
-      const padding = 20;
-      const headerHeight = 70;
-      const panelPadding = 48;
-      const spacing = 160;
-      
-      const availableWidth = diagramSize.width - panelPadding - (2 * padding);
-      const availableHeight = diagramSize.height - headerHeight - (2 * padding);
-      
-      // Dynamic group positioning based on available space
-      const getGroupPosition = (groupIndex: number, totalGroups: number) => {
-        const cols = Math.max(2, Math.min(4, Math.floor(availableWidth / (nodeWidth + spacing))));
-        const rows = Math.ceil(totalGroups / cols);
-        
-        const col = groupIndex % cols;
-        const row = Math.floor(groupIndex / cols);
-        
-        const xSpacing = availableWidth / cols;
-        const ySpacing = availableHeight / Math.max(rows, 1);
-        
-        return {
-          x: padding + (col * xSpacing),
-          y: padding + (row * ySpacing)
-        };
-      };
-      
-      const groupNames = Object.keys(nodesByGroup);
-      
-      // Position nodes with enhanced bounds checking
-      const updatedNodes = workflowNodes.map(node => {
-        let group = 'infra';
-        for (const [groupName, types] of Object.entries(nodeTypes)) {
-          if (types.includes(node.type)) {
-            group = groupName;
-            break;
-          }
-        }
-        
-        const groupIndex = groupNames.indexOf(group);
-        const groupPosition = getGroupPosition(groupIndex, groupNames.length);
-        const nodesInGroup = nodesByGroup[group] || [];
-        const indexInGroup = nodesInGroup.indexOf(node);
-        
-        // Calculate initial position
-        let x = groupPosition.x + (indexInGroup * spacing);
-        let y = groupPosition.y;
-        
-        // If nodes would go beyond available width, wrap to next row
-        const maxNodesPerRow = Math.floor(availableWidth / spacing);
-        if (indexInGroup >= maxNodesPerRow) {
-          x = groupPosition.x + ((indexInGroup % maxNodesPerRow) * spacing);
-          y = groupPosition.y + (Math.floor(indexInGroup / maxNodesPerRow) * (nodeHeight + 40));
-        }
-        
-        // Apply bounds checking
-        const constrainedNode = ensureNodeWithinBounds(
-          { ...node, x, y }, 
-          diagramSize.width, 
-          diagramSize.height
-        );
-        
-        return {
-          ...constrainedNode,
-          status: ['active', 'pending'][Math.floor(Math.random() * 2)] as 'active' | 'pending',
-          group,
-          microservice: ['backend', 'api'].includes(node.type),
-        };
-      });
-      
-      setWorkflowNodes(updatedNodes);
-    }
-  }, [workflowGenerated, diagramSize.width, diagramSize.height]);
-
-  // DISABLED: Pre-generation of node descriptions to avoid rate limiting
-  // Descriptions will now only be generated on-demand when user clicks a node
-  React.useEffect(() => {
-    if (workflowNodes.length > 0 && workflowGenerated && !hasGeneratedExplanation && !isGeneratingExplanation.current) {
-      // Only generate the workflow explanation, NOT individual node descriptions
-      isGeneratingExplanation.current = true;
-      
-      const delayedExplanation = async () => {
-        // Wait a short, configurable time after workflow/tech stack to avoid cascading 429s
-        console.log(`Waiting ${MIN_REQUEST_INTERVAL}ms before generating delayed workflow explanation...`);
-        await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL));
-        await fetchWorkflowExplanation(projectData.idea, projectData.requirements, workflowNodes);
-        setHasGeneratedExplanation(true);
-      };
-      delayedExplanation();
-    }
-  }, [workflowNodes.length, workflowGenerated, hasGeneratedExplanation]);
-
-  const handleContinue = () => {
-    onComplete({ nodes: workflowNodes }, techStack);
-  };
-
-  const handleRestart = () => {
-    // Reset to landing page
-    window.location.reload();
-  };
-    // Corner resize functionality  
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = diagramSize.width;
-    const startHeight = diagramSize.height;
-    
-    setIsResizing(true);
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      
-      const newWidth = Math.max(500, Math.min(1200, startWidth + deltaX));
-      const newHeight = Math.max(350, Math.min(700, startHeight + deltaY));
-      
-      setDiagramSize({
-        width: newWidth,
-        height: newHeight
-      });
-      setResizeCount(prev => prev + 1); // Debug counter
-    };
-    
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
-    };
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.body.style.cursor = 'nwse-resize';
-  };
-
-  // --- Progress bar overlay when AI is generating ---
-  if (isGenerating) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6 relative">
-        <div className="absolute top-0 left-0 w-full h-2 z-20">
-          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-            <div className="bg-gradient-to-r from-red-600 to-gray-700 h-2 rounded-full transition-all duration-500 ease-out" style={{ width: `${generationProgress}%` }}></div>
-              <div 
-                className="absolute top-0 left-0 rounded-3xl"
-                style={{ 
-                  width: `${diagramSize.width}px`,
-                  height: `${diagramSize.height}px`,
-                  // radial gradient anchored to diagram center - grows with diagram size
-                  backgroundImage: `radial-gradient(ellipse at center, rgba(220,38,38,0.08), rgba(107,114,128,0.06) 40%, transparent 70%)`,
-                  filter: 'blur(20px)'
-                }}
-              ></div>
-            <p className="text-base text-red-200 mb-8 max-w-md mx-auto">{generationStage === 'workflow' ? 'Analyzing your requirements and generating the architecture...' : generationStage === 'techStack' ? 'Selecting technologies and providing reasons for each...' : generationStage === 'descriptions' ? 'Generating component descriptions for the workflow...' : generationStage === 'explanation' ? 'Generating a contextual explanation for the workflow...' : generationStage === 'done' ? 'Finishing up the output...' : 'AI is working on your request...'}</p>
-            <div className="flex items-center justify-center space-x-4">
-              <Loader2 className="h-7 w-7 animate-spin text-red-400" />
-              <span className="text-red-300 font-medium text-base">{generationStage === 'workflow' ? 'Workflow' : generationStage === 'techStack' ? 'Tech Stack' : generationStage === 'descriptions' ? 'Descriptions' : generationStage === 'explanation' ? 'Explanation' : generationStage === 'done' ? 'Done' : 'Processing...' }: {generationProgress}%</span>
-            </div>
-          </div>
-        </div>
+const Generating: React.FC<{ stage: Stage }> = ({ stage }) => {
+  const current = Math.max(0, STAGES.findIndex(s => s.id === stage));
+  return (
+    <div className="mx-auto max-w-[84rem] px-5 py-14 sm:px-8 lg:py-24">
+      <h1 className="font-display text-[clamp(2.75rem,6vw,4.5rem)] font-bold uppercase leading-[0.95] tracking-[-0.01em]">
+        Plotting your plan
+      </h1>
+      <div className="mt-12 max-w-[48rem] overflow-x-auto border border-border bg-card">
+        <svg viewBox={`0 0 ${GEN_W} 170`} className="block h-auto w-full min-w-[520px]" role="img" aria-label={`Step ${current + 1} of ${STAGES.length}: ${STAGES[current].label}`}>
+          <defs>
+            <marker id="gen-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+              <path d="M1.5,1.5 L8.5,5 L1.5,8.5" fill="none" style={{ stroke: 'hsl(var(--primary))' }} strokeWidth="1.6" />
+            </marker>
+          </defs>
+          {STAGES.slice(0, -1).map((_, i) => {
+            const done = i < current;
+            return (
+              <path
+                key={`${i}-${done}`}
+                d={`M${genX(i) + RING_RADIUS + 8},70 H${genX(i + 1) - RING_RADIUS - 11}`}
+                fill="none"
+                strokeWidth="1.75"
+                strokeDasharray={done ? undefined : '5 5'}
+                markerEnd={done ? 'url(#gen-arrow)' : undefined}
+                className={done ? 'plot-line' : undefined}
+                style={{ stroke: done ? 'hsl(var(--primary))' : 'hsl(var(--input))', ['--len' as string]: 120 }}
+              />
+            );
+          })}
+          {STAGES.map((s, i) => {
+            const done = i < current;
+            const active = i === current;
+            return (
+              <g key={s.id} transform={`translate(${genX(i)},70)`} className={cn(done || active ? 'text-foreground' : 'text-muted-foreground/70')}>
+                <NavSymbol type={STAGE_SYMBOLS[i]} priority={done ? 'high' : active ? 'medium' : 'low'} />
+                <text
+                  textAnchor="middle"
+                  y={RING_RADIUS + 28}
+                  className="font-label"
+                  style={{ fill: 'currentColor', fontSize: 15, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}
+                >
+                  {s.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
-    );
-  }
+      <p className="mt-5 max-w-[52ch] text-[1.0625rem] leading-relaxed" role="status" aria-live="polite">
+        <span className="font-semibold">{`Step ${current + 1} of ${STAGES.length}. `}</span>
+        {STAGES[current].detail}
+      </p>
+    </div>
+  );
+};
+
+const WorkflowVisualization: React.FC<WorkflowVisualizationProps> = ({ projectData, onBack, onRestart }) => {
+  const [stage, setStage] = React.useState<Stage>('workflow');
+  const [nodes, setNodes] = React.useState<PlanNode[]>([]);
+  const [layout, setLayout] = React.useState<Pick<Layout, 'width' | 'height' | 'zones'> | null>(null);
+  const [techStack, setTechStack] = React.useState<TechItem[]>([]);
+  const [explanation, setExplanation] = React.useState('');
+  const [descriptions, setDescriptions] = React.useState<Record<string, string>>({});
+  const [failure, setFailure] = React.useState<{ count: number; message: string | null } | null>(null);
+
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [hoveredId, setHoveredId] = React.useState<string | null>(null);
+  const [flagged, setFlagged] = React.useState<ReadonlySet<string>>(new Set());
+  const [struck, setStruck] = React.useState<ReadonlySet<string>>(new Set());
+
+  const run = React.useCallback(async () => {
+    const { idea, requirements } = projectData;
+    resetApiFailures();
+    setStage('workflow');
+    setSelectedId(null);
+    setFlagged(new Set());
+    setStruck(new Set());
+    try {
+      const raw = await generateWorkflowNodes(idea, requirements);
+      const planned = layoutPlan(raw);
+      setNodes(planned.nodes);
+      setLayout(planned);
+
+      setStage('techStack');
+      setTechStack(await generateTechStackWithReasons(idea, requirements));
+
+      setStage('explanation');
+      setExplanation(await generateWorkflowExplanation(idea, requirements, raw));
+
+      setStage('descriptions');
+      const written = await generateBatchNodeDescriptions(
+        idea,
+        raw.map((n: PlanNode) => ({ id: n.id, label: n.label, type: n.type })),
+      );
+      // Templated filler is not the model's remarks, so it is left out rather than shown as if it were.
+      setDescriptions(Object.fromEntries(Object.entries(written).filter(([, text]) => !isTemplateDescription(text))));
+    } finally {
+      setFailure(getApiFailures());
+      setStage('done');
+    }
+  }, [projectData]);
+
+  const started = React.useRef(false);
+  React.useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    run();
+  }, [run]);
+
+  const move = React.useCallback((id: string, x: number, y: number) => {
+    setNodes(prev => prev.map(n => (n.id === id ? { ...n, x, y } : n)));
+  }, []);
+
+  if (stage !== 'done' || !layout) return <Generating stage={stage} />;
+
+  const ids = new Set(nodes.map(n => n.id));
+  const linkCount = nodes.reduce((sum, n) => sum + new Set(n.connections.filter(c => ids.has(c) && c !== n.id)).size, 0);
+  const categories = [...new Set(techStack.map(t => t.category))];
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="relative mb-8">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-700/20 to-gray-700/20 rounded-3xl blur-2xl"></div>
-          <div className="relative bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-10 shadow-2xl">
-            <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Your AI-Generated SaaS Architecture</h2>
-            <p className="text-base text-red-200 leading-relaxed">Explore your custom workflow. Click on any component to learn more about its role.</p>
-          </div>
-        </div>        <div className="flex flex-col xl:flex-row gap-8 items-start">
-          {/* Left side: Workflow Diagram and explanation */}
-          <div className="flex-1">
-            <div className="relative">
-              <div 
-                className="absolute inset-0 bg-gradient-to-r from-red-700/10 to-gray-700/10 rounded-3xl blur-2xl"
-                style={{ 
-                  width: `${diagramSize.width}px`,
-                  height: `${diagramSize.height}px`
-                }}
-              ></div>              <Card 
-                className="relative bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-6 shadow-2xl"
-                style={{ 
-                  height: `${diagramSize.height}px`,
-                  width: `${diagramSize.width}px`,
-                  minHeight: '400px',
-                  maxHeight: '800px',
-                  minWidth: '500px',
-                  maxWidth: '1200px',
-                  flexShrink: 0,
-                  overflow: 'visible'
-                }}
-                ref={diagramRef}
-              >                <div className="mb-4 flex items-center justify-between">                <h3 className="text-xl font-semibold text-white">Architecture Workflow</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="text-xs text-blue-300 bg-blue-500/20 px-2 py-1 rounded border border-blue-500/30">
-                      {diagramSize.width} × {diagramSize.height}
-                    </div>                    {workflowNodes.length > 0 && (
-                      <div 
-                        className={`text-xs ${
-                          Object.keys(nodeDescriptions).length === workflowNodes.length
-                            ? "text-green-300 bg-green-500/20 border-green-500/30"
-                            : Object.keys(nodeDescriptions).length > 0
-                              ? "text-yellow-300 bg-yellow-500/20 border-yellow-500/30" 
-                              : "text-red-300 bg-red-500/20 border-red-500/30"
-                        } px-2 py-1 rounded border flex items-center`}
-                      >
-                        <div 
-                          className={`w-1.5 h-1.5 rounded-full mr-1 ${
-                            Object.keys(nodeDescriptions).length === workflowNodes.length
-                              ? "bg-green-400"
-                              : Object.keys(nodeDescriptions).length > 0
-                                ? "bg-yellow-400" 
-                                : "bg-red-400"
-                          }`}
-                        ></div>
-                        <span>
-                          {Object.keys(nodeDescriptions).length}/{workflowNodes.length} descriptions ready
-                        </span>
-                      </div>
-                    )}
-                    {resizeCount > 0 && (
-                      <div className="text-xs text-green-300 bg-green-500/20 px-2 py-1 rounded border border-green-500/30">
-                        Resized {resizeCount}x
-                      </div>
-                    )}
-                    {isResizing && (
-                      <div className="text-xs text-red-300 bg-red-500/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
-                        Resizing...
-                      </div>
-                    )}
-                  </div>
-                </div><svg
-                  ref={svgRef}
-                  width={diagramSize.width - 48}
-                  height={diagramSize.height - 70}
-                  viewBox={`0 0 ${diagramSize.width - 48} ${diagramSize.height - 70}`}
-                  className="overflow-visible"
-                  style={{ cursor: isDragging ? 'grabbing' : 'default' }}
-                >
-                  {/* Render connections */}
-                  {renderConnections()}
-                  
-                  {/* Render nodes */}
-                  {workflowNodes.map(node => (
-                    <g key={node.id}>
-                      <foreignObject
-                        x={node.x}
-                        y={node.y}                        width="170"
-                        height="100"
-                        className={`cursor-${draggedNode === node.id ? 'grabbing' : 'grab'}`}                        onClick={() => {
-                          setSelectedNode(node.id);
-                          
-                          // Always show loading indicator briefly (better UX)
-                          setIsLoadingDescription(true);
-                          
-                          // Let React update the UI with the loading state
-                          setTimeout(() => {
-                            // Use cached description if available and valid with enhanced validation
-                            const cachedDescription = nodeDescriptions[node.id];
-                            
-                            if (cachedDescription && cachedDescription.length > 10) {
-                              console.log("Using cached description for node:", node.id);
-                              
-                              // Validate markdown formatting in the cached description
-                              const hasMarkdown = cachedDescription.includes('**') || 
-                                                cachedDescription.includes('*') || 
-                                                cachedDescription.includes('- ');
-                              
-                              if (hasMarkdown) {
-                                // Cached description has proper formatting
-                                setNodeDescription(cachedDescription);
-                              } else {
-                                // Add formatting to plain text description
-                                const formattedDesc = `**${node.label}**\n\n*${cachedDescription}*`;
-                                setNodeDescription(formattedDesc);
-                                
-                                // Also update cache with better formatting
-                                setNodeDescriptions(prev => ({
-                                  ...prev,
-                                  [node.id]: formattedDesc
-                                }));
-                              }
-                              setIsLoadingDescription(false);
-                            } else {
-                              // Fetch from API if not cached or cache was empty
-                              console.log("Fetching new description for node:", node.id);
-                              fetchNodeDescription(node.id);
-                            }
-                          }, 100);
-                        }}
-                        onMouseEnter={() => setHoveredNode(node.id)}
-                        onMouseLeave={() => setHoveredNode(null)}
-                        onMouseDown={(e) => handleMouseDown(e, node.id)}
-                      >                        <div className={`h-full relative group transition-all duration-300 transform ${
-                          hoveredNode === node.id ? 'scale-105' : 'scale-100'                        } ${selectedNode === node.id ? 'scale-102' : ''} ${
-                          draggedNode === node.id ? 'opacity-80 shadow-2xl' : ''
-                        }`}>{/* Background glow */}
-                          <div className={`absolute inset-0 bg-gradient-to-r ${getNodeGradient(node.type, node.priority)} rounded-2xl blur-lg opacity-60 group-hover:opacity-80 transition-opacity duration-300`}></div>
-                          
-                          {/* Futuristic scanning line effect */}
-                          <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-400 to-transparent opacity-30 animate-[scan-line_3s_ease-in-out_infinite]"></div>
-                          </div>
-                            {/* Node container */}                          <div className={`relative h-full bg-gray-900/80 backdrop-blur-sm border-2 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-xl transition-all duration-300 ${getNodeBorderClass(node.id)}`}>{/* Drag handle */}
-                            <div 
-                              className="absolute top-1 right-1 opacity-70 group-hover:opacity-100 transition-opacity cursor-grab hover:cursor-grab active:cursor-grabbing"
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                handleMouseDown(e, node.id);
-                              }}
-                            >
-                              <GripVertical className="h-4 w-4 text-gray-300 hover:text-white transition-colors" />
-                            </div>                              {/* Priority indicator - top left corner */}
-                            <div className={`absolute -top-2 -left-2 w-5 h-5 rounded-full border-2 border-gray-900 ${getPriorityIndicatorClass(node.priority)} shadow-lg`} title={`${node.priority || 'medium'} priority`}></div>
-                            
-                            {/* Status indicator - moved to top right */}
-                            <div className={`absolute -top-2 -right-2 w-4 h-4 rounded-full border-2 border-gray-900 ${getStatusIndicatorClass(node.status)}`}></div>
-                            
-                            {/* Microservice badge */}
-                            {node.microservice && (
-                              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs bg-blue-500/80 text-white rounded-full border border-blue-400">
-                                μService
-                              </div>
-                            )}
-                            
-                            {/* Icon */}
-                            <div className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">
-                              {getNodeIcon(node.type)}
-                            </div>
-                            
-                            {/* Label */}
-                            <span className="text-xs font-semibold text-white group-hover:text-blue-200 transition-colors duration-300">
-                              {node.label}
-                            </span>
-                            
-                            {/* Type badge */}
-                            <span className="text-xs text-gray-300 mt-1 opacity-80">
-                              {node.type}
-                            </span>
-                          </div>
-                        </div>
-                      </foreignObject>
-                    </g>
-                  ))}
-                </svg>                  {/* Corner resize handle */}
-                <button 
-                  className="absolute bottom-2 right-2 w-12 h-12 cursor-nwse-resize group z-30 bg-red-500/20 hover:bg-red-500/30 border-2 border-red-500/50 hover:border-red-500/70 rounded-lg transition-all duration-200 shadow-lg"
-                  onMouseDown={handleResizeStart}
-                  aria-label="Resize diagram"
-                  title="Drag to resize diagram"
-                >
-                  <div className="flex items-center justify-center w-full h-full">
-                    <CornerRightDown className="h-6 w-6 text-red-300 group-hover:text-red-100 group-hover:scale-110 transition-all duration-200" />
-                  </div>
-                </button>
-              </Card>
-            </div>            {/* Workflow Explanation Section */}
-            <div className="mt-8" style={{ width: `${diagramSize.width}px` }}>
-              <Card className="bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-white mb-4 tracking-tight">How this Workflow Works</h3>
-                <div 
-                  className="text-sm text-red-200 leading-relaxed space-y-3"
-                  dangerouslySetInnerHTML={{ 
-                    __html: formatExplanation(workflowExplanation || 'Loading explanation...') 
-                  }}
-                />
-              </Card>
-            </div>
-
-            {/* Tech Stack Section - Below Workflow Explanation */}
-            <div className="mt-8" style={{ width: `${diagramSize.width}px` }}>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-700/10 to-purple-700/10 rounded-3xl blur-2xl"></div>
-                <Card className="relative bg-gray-900/60 backdrop-blur-2xl border border-blue-500/30 rounded-2xl p-6 shadow-2xl">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                    <Code className="mr-2 h-5 w-5 text-blue-400" />
-                    Recommended Tech Stack
-                  </h3>
-                  
-                  {/* Loading State */}
-                  {isTechStackLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
-                      <span className="ml-2 text-blue-200">Generating recommendations...</span>
-                    </div>
-                  ) : techStackError ? (
-                    <div className="text-center py-8">
-                      <div className="text-red-400 mb-2">⚠️</div>
-                      <p className="text-red-300 text-sm">{techStackError}</p>
-                    </div>
-                  ) : techStack.length > 0 ? (
-                    <div>
-                      <div className="text-xs text-green-300 bg-green-500/20 px-2 py-1 rounded border border-green-500/30 inline-block mb-4">
-                        {techStack.length} recommendations ready
-                      </div>
-                      
-                      {/* Tech Stack Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Array.from(new Set(techStack.map(t => t.category))).map(category => (
-                          <div key={category} className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-gray-700/10 to-blue-700/10 rounded-xl blur-lg"></div>
-                            <Card className="relative bg-gray-900/40 backdrop-blur-xl border border-gray-500/20 rounded-xl p-4 shadow-lg">
-                              <h4 className="text-sm font-semibold text-white mb-3 flex items-center capitalize">
-                                {getCategoryIcon(category)}
-                                <span className="ml-2">{category}</span>
-                              </h4>
-                              <div className="space-y-2">
-                                {techStack
-                                  .filter(tech => tech.category === category)
-                                  .map(tech => (
-                                    <div
-                                      key={tech.id}
-                                      className="group p-3 rounded-lg border border-gray-600/30 bg-gray-800/40 hover:bg-gray-800/60 transition-all duration-200 hover:border-blue-500/40"
-                                    >
-                                      <h5 className="text-white font-medium text-sm group-hover:text-blue-100 transition-colors">
-                                        {tech.name}
-                                      </h5>
-                                      <p className="text-gray-300 text-xs mt-1 leading-relaxed group-hover:text-gray-200 transition-colors">
-                                        {tech.reason}
-                                      </p>
-                                    </div>
-                                  ))}
-                              </div>
-                            </Card>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </Card>
-              </div>
-            </div></div>
-              {/* Component Details Side Panel */}
-            <div className="w-full lg:w-80 xl:w-96 space-y-6 flex-shrink-0">
-              {/* Node Details */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-red-700/10 to-gray-700/10 rounded-3xl blur-2xl"></div>
-              <Card className="relative bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-8 shadow-2xl">
-                <h3 className="text-base font-semibold text-white mb-4 flex items-center tracking-tight">
-                  <Eye className="mr-2 h-4 w-4 text-red-400" />
-                  Component Details
-                </h3>
-                {selectedNode ? (
-                  <div className="space-y-4">
-                    {(() => {
-                      const node = workflowNodes.find(n => n.id === selectedNode);
-                      return node ? (
-                        <>                          <div className="text-center">
-                            <div className="text-2xl mb-2">{getNodeIcon(node.type)}</div>
-                            <h4 className="font-semibold text-white text-base mb-1">
-                              {node.label}
-                            </h4>
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                              node.priority === 'high' ? 'bg-red-500/20 text-red-200 border border-red-500/30' :
-                              node.priority === 'low' ? 'bg-gray-500/20 text-gray-200 border border-gray-500/30' :
-                              'bg-gray-500/20 text-gray-200 border border-gray-500/30'
-                            }`}>
-                              {node.priority?.toUpperCase() || 'MEDIUM'} PRIORITY
-                            </span>
-                          </div>
-                            {/* AI-Generated Component Description */}
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3">
-                            {isLoadingDescription ? (
-                              <div className="flex items-center justify-center py-2">
-                                <div className="w-4 h-4 border-2 border-red-300 border-t-transparent rounded-full animate-spin mr-2"></div>
-                                <span className="text-xs text-red-200">Generating insights...</span>
-                              </div>
-                            ) : nodeDescription ? (
-                              <div 
-                                className="text-xs leading-relaxed text-gray-300"
-                                dangerouslySetInnerHTML={{ 
-                                  __html: formatMarkdownDescription(nodeDescription)
-                                }}
-                              />
-                            ) : (
-                              <div className="text-center py-2">
-                                <div className="text-xs text-red-200">Click a component for description</div>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3 space-y-2 mt-3">
-                            <div className="flex justify-between">
-                              <span className="text-red-200 text-xs">Type:</span>
-                              <span className="text-white text-xs font-medium">{node.type}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-red-200 text-xs">Connections:</span>
-                              <span className="text-white text-xs font-medium">{node.connections.length}</span>
-                            </div>
-                          </div>
-                        </>
-                      ) : null;
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-400 py-8">
-                    <div className="text-2xl mb-2">🎯</div>
-                    <p className="text-xs">Select a component to view its details</p>
-                  </div>
-                )}
-              </Card>
-            </div>
-              {/* Architecture Stats */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-700/10 to-red-700/10 rounded-3xl blur-2xl"></div>
-              <Card className="relative bg-gray-900/60 backdrop-blur-2xl border border-red-500/30 rounded-2xl p-8 shadow-2xl">
-                <h3 className="text-base font-semibold text-white mb-4 flex items-center tracking-tight">
-                  <BarChart3 className="mr-2 h-4 w-4 text-red-400" />
-                  Architecture Stats
-                </h3>                {/* Enhanced status indicator for pre-generated descriptions */}
-                {workflowNodes.length > 0 && (
-                  <div className={`rounded-lg p-1 px-2 mb-3 flex items-center text-xs ${
-                    Object.keys(nodeDescriptions).length === workflowNodes.length
-                      ? "bg-green-500/10 border border-green-500/30"
-                      : Object.keys(nodeDescriptions).length > workflowNodes.length / 2
-                        ? "bg-yellow-500/10 border border-yellow-500/30"
-                        : "bg-red-500/10 border border-red-500/30"
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                      Object.keys(nodeDescriptions).length === workflowNodes.length
-                        ? "bg-green-400"
-                        : Object.keys(nodeDescriptions).length > workflowNodes.length / 2
-                          ? "bg-yellow-400"
-                          : "bg-red-400"
-                    }`}></div>
-                    <span className={`${
-                      Object.keys(nodeDescriptions).length === workflowNodes.length
-                        ? "text-green-300"
-                        : Object.keys(nodeDescriptions).length > workflowNodes.length / 2
-                          ? "text-yellow-300"
-                          : "text-red-300"
-                    }`}>
-                      {Object.keys(nodeDescriptions).length === workflowNodes.length 
-                        ? 'All component descriptions ready' 
-                        : `${Object.keys(nodeDescriptions).length}/${workflowNodes.length} descriptions ready`}
-                      {Object.keys(nodeDescriptions).length < workflowNodes.length && ' - generating...'}
-                    </span>
-                  </div>
-                )}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-xs">Components</span>
-                    <span className="text-lg font-bold text-white">{workflowNodes.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-xs">Connections</span>
-                    <span className="text-lg font-bold text-white">
-                      {workflowNodes.reduce((acc, node) => acc + (Array.isArray(node.connections) ? node.connections.length : 0), 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">                    <span className="text-gray-300 text-xs">Complexity</span>
-                    <span className={`text-base font-bold ${getComplexityColor(workflowNodes.length)}`}>
-                      {getComplexityLabel(workflowNodes.length)}
-                    </span>
-                  </div>
-                  
-                  {/* Priority breakdown */}
-                  <div className="pt-3 border-t border-red-500/30">
-                    <div className="text-xs text-gray-300 mb-1">Priority Distribution</div>
-                    <div className="space-y-1">
-                      {['high', 'medium', 'low'].map(priority => {
-                        const count = workflowNodes.filter(n => n.priority === priority).length;
-                        return count > 0 ? (
-                          <div key={priority} className="flex justify-between text-xs">
-                            <span className="capitalize text-gray-400">{priority}</span>
-                            <span className="text-white">{count}</span>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
+    <div className="mx-auto max-w-[84rem] px-5 py-8 sm:px-8 lg:py-12">
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-5">
+        <div className="min-w-0 max-w-[52rem]">
+          <h1 className="line-clamp-2 font-display text-[clamp(2.25rem,4.6vw,3.75rem)] font-semibold leading-[1.02]" title={projectData.idea}>
+            {projectData.idea}
+          </h1>
         </div>
-          {/* Project Summary Section */}
-        <div className="mt-12">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-700/10 to-blue-700/10 rounded-3xl blur-2xl"></div>
-            <Card className="relative bg-gray-900/60 backdrop-blur-2xl border border-green-500/30 rounded-3xl p-8 shadow-2xl">
-              <h3 className="text-2xl font-semibold text-white mb-6 flex items-center tracking-tight">
-                <Brain className="mr-3 h-6 w-6 text-green-400" />
-                Project Architecture Summary
-              </h3>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Workflow Summary */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-green-300 mb-3">Architecture Overview</h4>                  <div className="prose prose-invert max-w-none text-sm leading-relaxed">
-                    <p className="text-gray-200 mb-4">
-                      <strong>Your SaaS architecture</strong> consists of <strong>{workflowNodes.length} interconnected components</strong> designed to work together seamlessly. This architecture follows modern microservices patterns and ensures scalability, maintainability, and security.
-                    </p>
-                    
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
-                      <h5 className="text-green-300 font-medium mb-2">Key Architecture Highlights:</h5>
-                      <ul className="text-gray-300 text-sm space-y-1">
-                        <li>• <strong>{workflowNodes.filter(n => n.priority === 'high').length} high-priority components</strong> for core functionality</li>
-                        <li>• <strong>{workflowNodes.reduce((acc, node) => acc + (Array.isArray(node.connections) ? node.connections.length : 0), 0)} interconnections</strong> ensuring seamless data flow</li>
-                        <li>• <strong>{getComplexityLabel(workflowNodes.length)} complexity</strong> level appropriate for your requirements</li>
-                        <li>• <strong>Modular design</strong> allowing for independent scaling and maintenance</li>
-                      </ul>
-                    </div>
-                    
-                    <p className="text-gray-200">
-                      Each component has been strategically positioned to optimize performance, security, and user experience. The architecture supports both horizontal and vertical scaling as your SaaS grows.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Tech Stack Summary */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-blue-300 mb-3">Technology Stack Rationale</h4>                  <div className="prose prose-invert max-w-none text-sm leading-relaxed">
-                    <p className="text-gray-200 mb-4">
-                      <strong>{techStack.length} carefully selected technologies</strong> have been recommended based on your project requirements, industry best practices, and long-term maintainability considerations.
-                    </p>
-                    
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-                      <h5 className="text-blue-300 font-medium mb-2">Stack Composition:</h5>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {Array.from(new Set(techStack.map(t => t.category))).map(category => (
-                          <div key={category} className="flex justify-between">
-                            <span className="text-gray-400 capitalize">{category}:</span>
-                            <span className="text-blue-300 font-medium">{techStack.filter(t => t.category === category).length}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-200 mb-3">
-                      <strong>Why these technologies?</strong> Each recommendation considers factors like:
-                    </p>
-                    <ul className="text-gray-300 text-sm space-y-1 mb-4">
-                      <li>• <strong>Community support</strong> and long-term viability</li>
-                      <li>• <strong>Performance</strong> characteristics for your use case</li>
-                      <li>• <strong>Learning curve</strong> and developer availability</li>
-                      <li>• <strong>Ecosystem compatibility</strong> and integration ease</li>
-                      <li>• <strong>Scalability</strong> and production readiness</li>
-                    </ul>
-                      <p className="text-gray-200">
-                      This stack provides a solid foundation for building, deploying, and maintaining your SaaS application while allowing for future growth and technology evolution.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Implementation Roadmap */}
-              <div className="mt-8 pt-6 border-t border-gray-600/30">
-                <h4 className="text-lg font-semibold text-purple-300 mb-4">Implementation Roadmap</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                    <h5 className="text-purple-300 font-medium mb-2">Phase 1: Foundation</h5>
-                    <p className="text-gray-300 text-sm">
-                      Set up core infrastructure, databases, and authentication systems. Establish development environment and CI/CD pipelines.
-                    </p>
-                  </div>
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                    <h5 className="text-purple-300 font-medium mb-2">Phase 2: Core Features</h5>
-                    <p className="text-gray-300 text-sm">
-                      Implement primary business logic, API endpoints, and user-facing features. Focus on high-priority components first.
-                    </p>
-                  </div>
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                    <h5 className="text-purple-300 font-medium mb-2">Phase 3: Scale & Optimize</h5>
-                    <p className="text-gray-300 text-sm">
-                      Add monitoring, analytics, and performance optimizations. Implement advanced features and scaling strategies.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Next Steps */}
-              <div className="mt-6 pt-6 border-t border-gray-600/30">
-                <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-lg p-6">
-                  <h5 className="text-white font-semibold mb-3 flex items-center">
-                    <ChevronRight className="mr-2 h-5 w-5 text-green-400" />
-                    Ready to Start Building?
-                  </h5>
-                  <p className="text-gray-200 text-sm mb-4">
-                    Your architecture is now complete! Use this as a blueprint for your development team. Consider starting with the high-priority components and gradually building out the full system.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-xs">Architecture: Ready</span>
-                    <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs">Tech Stack: Validated</span>
-                    <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs">Roadmap: Defined</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-        
-        {/* Navigation */}
-        <div className="flex justify-between mt-10">
-          <Button
-            onClick={onBack}
-            variant="outline"
-            className="bg-gray-900/60 border-red-500/30 hover:bg-gray-900/80 text-white px-8 py-4 rounded-2xl transition-all backdrop-blur-2xl"
-          >
-            Back to Requirements
-          </Button>          <Button
-            onClick={handleRestart}
-            className="bg-gradient-to-r from-green-600 to-blue-700 hover:from-green-500 hover:to-blue-600 text-white px-8 py-4 rounded-2xl transition-all shadow-lg shadow-green-500/25"
-          >
-            Start New Project
-            <ChevronRight className="ml-2 h-5 w-5" />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft />
+            Edit answers
+          </Button>
+          <Button variant="outline" onClick={onRestart}>
+            <RotateCcw />
+            New plan
           </Button>
         </div>
       </div>
+
+      {failure && failure.count > 0 && (
+        <div role="status" className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-destructive bg-card px-4 py-3">
+          <p className="max-w-[70ch] text-[1rem] leading-snug">
+            <strong className="font-semibold text-destructive">Part of this plan is a generic template.</strong>{' '}
+            {failure.count === 1 ? 'One model request' : `${failure.count} model requests`} failed
+            {failure.message ? `: ${failure.message}` : '.'} Check your key and balance, then try again.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              started.current = true;
+              run();
+            }}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-x-10 gap-y-12 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="min-w-0 space-y-12">
+          <section aria-label="Architecture chart">
+            <div className="border border-border bg-card">
+              <div className="overflow-x-auto">
+              <div className="min-w-[760px] p-3">
+                <ArchitectureChart
+                  nodes={nodes}
+                  layout={layout}
+                  selectedId={selectedId}
+                  hoveredId={hoveredId}
+                  flagged={flagged}
+                  struck={struck}
+                  animate
+                  label={`Architecture chart with ${nodes.length} parts. Select a part to read about it; drag it, or use arrow keys, to move it.`}
+                  onSelect={setSelectedId}
+                  onHover={setHoveredId}
+                  onMove={move}
+                />
+              </div>
+              </div>
+              <dl className="grid grid-cols-3 border-t border-border">
+                {[
+                  ['Parts', String(nodes.length)],
+                  ['Links', String(linkCount)],
+                  [
+                    'Your marks',
+                    flagged.size || struck.size
+                      ? [flagged.size ? `${flagged.size} flagged` : null, struck.size ? `${struck.size} struck` : null].filter(Boolean).join(', ')
+                      : '—',
+                  ],
+                ].map(([k, v], i) => (
+                  <div key={k} className={cn('min-w-0 px-3 py-2', i > 0 && 'border-l border-border')}>
+                    <dt className="font-label text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{k}</dt>
+                    <dd className="font-label text-[0.9375rem] font-semibold tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <p className="mt-2 text-[0.9375rem] text-muted-foreground">
+              Drag a part to rearrange the chart, or focus it and use the arrow keys.
+            </p>
+          </section>
+
+          <section aria-labelledby="how-heading">
+            <h2 id="how-heading" className="font-display text-[1.75rem] font-bold uppercase leading-none tracking-[0.01em]">
+              How it fits together
+            </h2>
+            <RichText text={explanation} className="mt-3 max-w-[65ch] text-[1.0625rem] leading-relaxed" />
+          </section>
+
+          <section aria-labelledby="legend-heading">
+            <h2 id="legend-heading" className="mb-4 font-display text-[1.75rem] font-bold uppercase leading-none tracking-[0.01em]">
+              Reading the chart
+            </h2>
+            <Legend types={nodes.map(n => n.type)} />
+          </section>
+        </div>
+
+        <aside aria-labelledby="rack-heading" className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-1">
+          <h2 id="rack-heading" className="mb-4 font-display text-[1.75rem] font-bold uppercase leading-none tracking-[0.01em]">
+            Parts
+          </h2>
+          <StripRack
+            nodes={nodes}
+            selectedId={selectedId}
+            hoveredId={hoveredId}
+            flagged={flagged}
+            struck={struck}
+            descriptions={descriptions}
+            describing={false}
+            onSelect={id => setSelectedId(cur => (cur === id ? null : id))}
+            onHover={setHoveredId}
+            onToggleFlag={id => setFlagged(s => toggle(s, id))}
+            onToggleStrike={id => setStruck(s => toggle(s, id))}
+          />
+        </aside>
+      </div>
+
+      <section aria-labelledby="stack-heading" className="mt-16">
+        <h2 id="stack-heading" className="font-display text-[1.75rem] font-bold uppercase leading-none tracking-[0.01em]">
+          Technology
+        </h2>
+        <div className="mt-4 border-b border-border">
+          {categories.map(category => (
+            <div key={category} className="grid gap-x-8 gap-y-1 border-t border-border py-4 md:grid-cols-[11rem_minmax(0,1fr)]">
+              <h3 className="label-caps pt-0.5 text-muted-foreground">{category}</h3>
+              <ul className="space-y-3">
+                {techStack
+                  .filter(t => t.category === category)
+                  .map(t => (
+                    <li key={t.id} className="max-w-[70ch]">
+                      <span className="font-label text-[1.1875rem] font-semibold">{t.name}</span>
+                      <span className="mt-0.5 block text-[1rem] leading-relaxed text-muted-foreground">{t.reason}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

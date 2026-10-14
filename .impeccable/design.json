@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-14T00:00:00.000Z",
+  "title": "Design System: SaaS Architect Genesis",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Chart Blue", "canonical": "hsl(214 72% 38%)", "tonalRamp": ["#0b2342", "#133c72", "#1a55a2", "#226fd3", "#508fe2", "#84b1eb", "#b9d2f4", "#e9f1fb"] },
+      "destructive": { "role": "secondary", "displayName": "Decision Magenta", "canonical": "hsl(328 71% 38%)", "tonalRamp": ["#410b28", "#711345", "#a11b63", "#d12380", "#e1519e", "#ea85bb", "#f3b9d8", "#fbe9f3"] },
+      "navy-ink": { "role": "neutral", "displayName": "Navy Ink", "canonical": "hsl(208 36% 12%)", "tonalRamp": ["#182734", "#2a445a", "#3c6180", "#4e7da6", "#749bbe", "#9eb9d1", "#c8d7e5", "#eef3f7"] },
+      "chart-stock": { "role": "neutral", "displayName": "Chart Stock", "canonical": "hsl(150 8% 96%)", "tonalRamp": ["#232926", "#3d4842", "#57665e", "#71847a", "#91a199", "#b2bdb8", "#d3d9d6", "#f1f3f2"] },
+      "strip-edge": { "role": "neutral", "displayName": "Strip Edge", "canonical": "hsl(208 16% 58%)", "tonalRamp": ["#20272c", "#38434d", "#4f5f6d", "#677c8e", "#899aa9", "#acb8c3", "#d0d7dd", "#f0f2f4"] },
+      "strip-paper": { "role": "neutral", "displayName": "Strip Paper", "canonical": "hsl(0 0% 100%)", "tonalRamp": ["#262626", "#424242", "#5e5e5e", "#7a7a7a", "#9c9c9c", "#bdbdbd", "#dedede", "#ffffff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing headline. Uppercase Barlow Condensed 700." },
+      "headline": { "displayName": "Headline", "purpose": "Question headings and generating-screen title. Uppercase 700." },
+      "title": { "displayName": "Title", "purpose": "Results section headings. Uppercase 700." },
+      "user-headline": { "displayName": "User Headline", "purpose": "Results H1 set in the founder's own idea text. Mixed case, 600." },
+      "body": { "displayName": "Body", "purpose": "Reading text, 52-65ch." },
+      "label": { "displayName": "Label", "purpose": "Buttons, chart and strip lettering. Barlow Semi Condensed 600, tracked, uppercase." }
+    },
+    "shadows": [
+      { "name": "strip", "value": "0 1px 0 hsl(208 16% 58%), 0 3px 8px -4px hsl(208 36% 12% / 0.35)", "purpose": "Soft lift for paper strips; the only resting shadow in the system." },
+      { "name": "current-question-edge", "value": "0 0 0 1px hsl(214 72% 38%)", "purpose": "Blue edge reinforcement on the current question strip." }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Airway plot-in (900ms) and settle (520ms, 6px rise). Only under prefers-reduced-motion: no-preference." },
+      { "name": "colour-transition", "value": "150ms", "purpose": "Button background, colour and border changes." },
+      { "name": "strip-offset", "value": "200ms ease-out on margin, box-shadow, opacity", "purpose": "Flagging a strip cocks it 16px right." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Chart Blue action, one per view.",
+      "html": "<button class=\"ds-btn-primary\">Plan this idea</button>",
+      "css": ".ds-btn-primary { height: 48px; padding: 0 28px; background: hsl(214 72% 38%); color: hsl(150 12% 99%); border: 0; border-radius: 1px; font-family: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; transition: background-color 150ms, color 150ms, border-color 150ms; } .ds-btn-primary:hover { background: hsl(214 72% 38% / 0.9); } .ds-btn-primary:focus-visible { outline: 2px solid hsl(214 72% 38%); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.45; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action; inverts to navy on hover.",
+      "html": "<button class=\"ds-btn-outline\">Edit answers</button>",
+      "css": ".ds-btn-outline { height: 44px; padding: 0 20px; background: transparent; color: hsl(208 36% 12%); border: 1px solid hsl(208 36% 12% / 0.7); border-radius: 1px; font-family: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn-outline:hover { background: hsl(208 36% 12%); color: hsl(150 8% 96%); } .ds-btn-outline:focus-visible { outline: 2px solid hsl(214 72% 38%); outline-offset: 2px; }"
+    },
+    {
+      "name": "Idea Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Boxed card-stock text area with blue focus.",
+      "html": "<textarea class=\"ds-field\" rows=\"4\" placeholder=\"A project management tool for remote teams\"></textarea>",
+      "css": ".ds-field { width: 100%; min-height: 112px; padding: 12px 14px; background: hsl(150 12% 99%); color: hsl(208 36% 12%); border: 1px solid hsl(208 16% 52%); border-radius: 1px; font-family: Barlow, system-ui, sans-serif; font-size: 16px; line-height: 1.625; caret-color: hsl(214 72% 38%); transition: border-color 150ms; } .ds-field::placeholder { color: hsl(208 16% 34% / 0.8); } .ds-field:hover { border-color: hsl(208 36% 12% / 0.6); } .ds-field:focus-visible { outline: none; border-color: hsl(214 72% 38%); box-shadow: 0 0 0 2px hsl(214 72% 38%); }"
+    },
+    {
+      "name": "Navaid Symbol",
+      "kind": "custom",
+      "description": "Database symbol with a double ring for high priority. Ring form carries priority.",
+      "html": "<svg class=\"ds-symbol\" width=\"56\" height=\"56\" viewBox=\"-28 -28 56 56\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><circle r=\"21\" fill=\"#fcfdfc\" stroke=\"none\"/><circle r=\"24.5\" stroke-width=\"1.25\"/><circle r=\"21\"/><ellipse cy=\"-9\" rx=\"12\" ry=\"4.2\"/><path d=\"M-12,-9 V9 A12,4.2 0 0 0 12,9 V-9\"/><path d=\"M-12,0 A12,4.2 0 0 0 12,0\"/></g></svg>",
+      "css": ".ds-symbol { color: hsl(208 36% 12%); display: block; }"
+    },
+    {
+      "name": "Paper Strip",
+      "kind": "card",
+      "description": "White strip with cool ink edge, boxed fields and soft shadow. Add ds-strip-flagged to cock it.",
+      "html": "<div class=\"ds-bay-rail\"></div><div class=\"ds-strip\"><div class=\"ds-strip-name\">Scheduling service</div><div class=\"ds-fields\"><div class=\"ds-field-box\"><div class=\"ds-fn\">Type</div>Backend</div><div class=\"ds-field-box\"><div class=\"ds-fn\">Priority</div>High</div></div></div>",
+      "css": ".ds-bay-rail { height: 6px; border-radius: 1px; background: hsl(208 36% 12% / 0.85); margin-bottom: 8px; } .ds-strip { max-width: 360px; padding: 10px 12px; background: #fff; color: hsl(208 36% 12%); border: 1px solid hsl(208 16% 58%); border-radius: 1px; box-shadow: 0 1px 0 hsl(208 16% 58%), 0 3px 8px -4px hsl(208 36% 12% / 0.35); font-family: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; transition: margin 200ms ease-out; } .ds-strip:hover { border-color: hsl(208 36% 12% / 0.5); } .ds-strip-flagged { margin-left: 16px; } .ds-strip-name { font-size: 17px; font-weight: 600; line-height: 1.2; } .ds-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; } .ds-field-box { border: 1px solid hsl(208 16% 58%); padding: 2px 8px 4px; font-size: 15px; font-weight: 600; line-height: 1.2; } .ds-fn { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(208 36% 12% / 0.7); }"
+    },
+    {
+      "name": "Answer Row",
+      "kind": "chip",
+      "description": "Ruled selectable row with square control; selected state fills accent wash.",
+      "html": "<label class=\"ds-row ds-row-on\"><span class=\"ds-box\"></span><span>Subscriptions</span></label>",
+      "css": ".ds-row { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 12px; border-top: 1px solid hsl(208 14% 78%); font-family: Barlow, system-ui, sans-serif; font-size: 17px; color: hsl(208 36% 12%); cursor: pointer; transition: background-color 150ms; } .ds-row:hover { background: hsl(214 40% 91% / 0.6); } .ds-row-on { background: hsl(214 40% 91%); } .ds-box { width: 20px; height: 20px; border: 1.5px solid hsl(208 36% 12% / 0.7); border-radius: 2px; flex: none; } .ds-row-on .ds-box { background: hsl(214 72% 38%); border-color: hsl(214 72% 38%); }"
+    },
+    {
+      "name": "Legend Row",
+      "kind": "custom",
+      "description": "Ranked symbol-table row: symbol, uppercase term, plain gloss.",
+      "html": "<div class=\"ds-legend\"><svg width=\"30\" height=\"30\" viewBox=\"-28 -28 56 56\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"><circle r=\"21\"/><path d=\"M0,-14 L14,11 L-14,11 Z\"/></g></svg><div><div class=\"ds-term\">API</div><div class=\"ds-gloss\">The doorway the frontend uses to ask the backend for things.</div></div></div>",
+      "css": ".ds-legend { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid hsl(208 14% 78%); color: hsl(208 36% 12%); } .ds-term { font-family: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; } .ds-gloss { font-family: Barlow, system-ui, sans-serif; font-size: 15px; line-height: 1.35; color: hsl(208 16% 34%); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The En-Route Chart",
+    "overview": "The interface is a printed aeronautical en-route chart with a rack of paper flight strips beside it. Cool-white chart stock carries navy ink, hairline rules, a ruled neatline and tick marks. Parts of a plan are drafted navaid symbols at one fixed scale joined by airways, and every part is also written on a boxed-field paper strip that the founder can flag or strike. Density is calm and instrument-like: lots of ruled structure, almost no ornament.\n\nThe system rejects the dark-glass dashboard and the icon-card grid. Nothing glows, blurs or floats; structure comes from rules, rings and boxed fields. Lettering is one grotesque family cut three ways (Barlow, Barlow Semi Condensed, Barlow Condensed), all with tabular, lining figures turned on at the body.",
+    "keyCharacteristics": [
+      "Cool-white stock, navy ink, one blue, one magenta.",
+      "Priority is ring form (double, single, dashed), never hue.",
+      "State is line form (solid, dashed, struck), never colour alone.",
+      "2px corners, hairline rules, flat except a soft strip shadow.",
+      "Condensed uppercase display for app-authored headings; the user's own words stay mixed-case."
+    ],
+    "rules": [
+      { "name": "The One Blue Rule", "body": "Chart Blue means airways and the primary action. It is never used for priority, decoration or categories.", "section": "colors" },
+      { "name": "The Decision Magenta Rule", "body": "Magenta appears only where the founder must look or decide: flags, errors, the failure banner. If nothing needs a decision the screen has no magenta.", "section": "colors" },
+      { "name": "The Ring Not Hue Rule", "body": "Priority is carried by ring form on the symbol: double ring high, single ring medium, dashed thin ring low. Colour is never the carrier of priority or type.", "section": "colors" },
+      { "name": "The Voice Rule", "body": "App-authored headings are uppercase Barlow Condensed 700. The user's own words (the results H1, their idea) are mixed-case 600; the app never shouts the founder's text.", "section": "typography" },
+      { "name": "The Flat-Except-Paper Rule", "body": "Only strips carry a shadow, and only the soft one above. Nothing else lifts.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do write app headings in uppercase Barlow Condensed 700 and the founder's own text in mixed-case 600.",
+      "Do use Chart Blue only for airways, focus, links and the primary action; magenta only for flags, errors and open decisions.",
+      "Do show priority with ring form and state with line form (solid, dashed, struck), so no meaning rests on colour alone.",
+      "Do draw every component as a navaid symbol at the one fixed scale, one silhouette per type.",
+      "Do separate sections with 1px hairlines and bay rails instead of cards.",
+      "Do keep corners at 2px and let the strip shadow be the only shadow.",
+      "Do mark an offset strip as flagged and keep the current question strip blue-edged with no offset.",
+      "Do respect `prefers-reduced-motion`: the plot-line and settle animations are gated on no-preference."
+    ],
+    "donts": [
+      "Don't use hue to encode priority or component type.",
+      "Don't add a paper texture: there is no real raster asset in the build, so strips are flat white.",
+      "Don't use rounded cards, glow, blur, glass panels or a second accent.",
+      "Don't route airways diagonally; keep them horizontal, vertical in the gutter, horizontal into the target.",
+      "Don't put magenta on anything that is not an error, flag or open decision."
+    ]
+  }
+}

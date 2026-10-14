@@ -39,6 +39,17 @@ try {
 }
 export const MIN_REQUEST_INTERVAL = envInterval ? Number.parseInt(envInterval, 10) : 350; // 350ms default to improve responsiveness
 
+// Templated filler used when a description cannot be trusted; the UI must not present it as the model's remarks.
+const TEMPLATE_TAIL = '- Follows industry best practices for security';
+export const isTemplateDescription = (text: string): boolean => text.includes(TEMPLATE_TAIL);
+
+// The generators below fall back to canned content when a request fails. These counters let the UI
+// say so instead of presenting a template as the model's answer.
+let failedCalls = 0;
+let lastError: string | null = null;
+export const resetApiFailures = (): void => { failedCalls = 0; lastError = null; };
+export const getApiFailures = (): { count: number; message: string | null } => ({ count: failedCalls, message: lastError });
+
 // Request queue to prevent parallel requests
 let requestQueue: Promise<any> = Promise.resolve();
 let queuedRequestCount = 0;
@@ -141,6 +152,8 @@ export const callDeepSeekAPI = async (messages: DeepSeekMessage[], modelOverride
         resolve(result);
       } catch (error) {
         console.error('OpenRouter API error:', error);
+        failedCalls += 1;
+        lastError = error instanceof Error ? error.message : String(error);
         reject(error);
       }
     });
@@ -641,5 +654,5 @@ export const generateBatchNodeDescriptions = async (
 const generateSafeNodeDescription = (nodeType: string, nodeLabel: string, idea?: string): string => {
   // Safe, templated response with no external dependencies
   const ideaPhrase = idea ? ` for the project "${idea}"` : '';
-  return `**${nodeLabel}**\n\n*A ${nodeType} component* that handles critical operations${ideaPhrase}.\n\n- Manages core ${nodeType} functionality\n- Maintains high availability and performance\n- Follows industry best practices for security`;
+  return `**${nodeLabel}**\n\n*A ${nodeType} component* that handles critical operations${ideaPhrase}.\n\n- Manages core ${nodeType} functionality\n- Maintains high availability and performance\n${TEMPLATE_TAIL}`;
 };
